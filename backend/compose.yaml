@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: tfe_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tfe
+      POSTGRES_PASSWORD: tfe_dev_password
+      POSTGRES_DB: tfe
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tfe -d tfe"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
