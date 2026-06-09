@@ -1,0 +1,230 @@
+// schema.prisma - Le Cénacle
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Appartement {
+  id_appartement Int        @id @default(autoincrement())
+  numero         Int        @unique
+  created_at     DateTime   @default(now())
+  residents      Resident[]
+}
+
+model Resident {
+  id_resident    Int         @id @default(autoincrement())
+  id_appartement Int
+  prenom         String
+  nom            String
+  date_entree    DateTime
+  date_sortie    DateTime?
+  actif          Boolean     @default(true)
+  created_at     DateTime    @default(now())
+  appartement    Appartement @relation(fields: [id_appartement], references: [id_appartement])
+  commandes      Commande[]
+  allergies      Allergie[]
+  boissons       Boisson[]
+
+  @@index([id_appartement, actif])
+}
+
+model Allergie {
+  id_allergie Int          @id @default(autoincrement())
+  id_resident Int
+  libelle     String
+  type        TypeAllergie
+  notes       String?
+  created_at  DateTime     @default(now())
+  created_by  Int
+  resident    Resident     @relation(fields: [id_resident], references: [id_resident])
+  utilisateur Utilisateur  @relation(fields: [created_by], references: [id_utilisateur])
+
+  @@index([id_resident])
+}
+
+model Menu {
+  id_menu   Int          @id @default(autoincrement())
+  // date_menu @unique : une seule entrée de menu par date (US-07).
+  // C'est CETTE contrainte qui rend l'immuabilité d'une OptionMenu une propriété
+  // de conception (garantie par le système) et non une simple convention :
+  // un menu est lié à exactement une date, donc une option ne peut pas être
+  // partagée entre deux jours ni recyclée.
+  date_menu DateTime     @unique
+  semaine   Int
+  annee     Int
+  options   OptionMenu[]
+}
+
+model OptionMenu {
+  // ─────────────────────────────────────────────────────────────────
+  // Exigence 1 — FK vers une donnée IMMUABLE : la clé étrangère suffit.
+  // Une OptionMenu est immuable par construction (rattachée à un Menu, lui-même
+  // lié à une date unique). Elle n'est jamais partagée ni recyclée d'un jour
+  // à l'autre. LigneCommande peut donc pointer dessus par simple FK : la valeur
+  // ne peut pas changer « sous » la commande. Aucun snapshot nécessaire.
+  // ─────────────────────────────────────────────────────────────────
+  id_option           Int             @id @default(autoincrement())
+  id_menu             Int
+  categorie           CategorieOption
+  libelle             String
+  contient_allergenes String?
+  menu                Menu            @relation(fields: [id_menu], references: [id_menu])
+  lignes              LigneCommande[]
+}
+
+model Commande {
+  id_commande    Int             @id @default(autoincrement())
+  id_resident    Int
+  date_repas     DateTime
+  type_repas     TypeRepas
+  statut         StatutCommande  @default(active)
+  en_appartement Boolean         @default(false)
+  remarque       String?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  created_by     Int
+  annule_le      DateTime?
+  type_client    TypeClient      @default(resident)
+  note_invite    String?
+  resident       Resident        @relation(fields: [id_resident], references: [id_resident])
+  utilisateur    Utilisateur     @relation(fields: [created_by], references: [id_utilisateur])
+  lignes         LigneCommande[]
+
+  @@index([date_repas, type_repas])
+  @@index([id_resident, date_repas])
+}
+
+model LigneCommande {
+  id_ligne    Int        @id @default(autoincrement())
+  id_commande Int
+  // categorie RETIRÉE : dérivable via option.categorie. OptionMenu étant immuable
+  // (cf. bloc OptionMenu), la FK seule suffit — pas de snapshot d'une donnée immuable.
+  id_option   Int
+  commande    Commande   @relation(fields: [id_commande], references: [id_commande])
+  // FK seule, volontairement : voir bloc d'explication sur OptionMenu (donnée immuable).
+  option      OptionMenu     @relation(fields: [id_option], references: [id_option])
+}
+
+model BoissonCatalogue {
+  id_boisson_catalogue Int       @id @default(autoincrement())
+  categorie            String
+  sous_categorie       String?
+  variante             String?
+  format               String?
+  libelle              String
+  // prix MUTABLE par l'admin (US-31, PATCH .../prix). C'est précisément ce qui
+  // interdit de relire le prix via la FK depuis une conso historique : il faut figer.
+  prix                 Decimal   @db.Decimal(6, 2)
+  // actif = retrait logique (soft-delete). Une boisson « retirée » reste donc en base,
+  // ce qui permet de conserver la FK des consos passées sans compromettre l'historique.
+  actif                Boolean   @default(true)
+  ordre                Int       @default(0)
+  created_at           DateTime  @default(now())
+  boissons             Boisson[]
+
+  @@index([categorie, sous_categorie, variante, format])
+}
+
+model Boisson {
+  id_boisson           Int              @id @default(autoincrement())
+  id_resident          Int
+  date_service         DateTime
+  id_boisson_catalogue Int
+
+  // ─────────────────────────────────────────────────────────────────
+  // Exigence 2 — FK vers une donnée MUTABLE : on FIGE (snapshot).
+  // Le prix (et le libellé) du catalogue peuvent changer après l'encodage.
+  // On copie donc sciemment, AU MOMENT DE L'ENCODAGE, le prix unitaire et le
+  // libellé sur la ligne de conso. Dénormalisation VOLONTAIRE et justifiée :
+  // l'historique (addition en cours, facturation mensuelle) doit être
+  // indépendant de l'évolution du catalogue.
+  //
+  // Exigence 3 — Lecture TOUJOURS depuis le figé, jamais depuis la source.
+  // À la création : on lit le catalogue et on remplit prix_unitaire + libelle.
+  // Partout ensuite (serveur ET facturation) : on relit CES champs, jamais la FK.
+  // La FK ci-dessous ne sert qu'à tracer l'origine, plus à déterminer le montant.
+  // ─────────────────────────────────────────────────────────────────
+  prix_unitaire        Decimal          @db.Decimal(6, 2) // snapshot du prix à l'encodage
+  libelle              String                              // snapshot du libellé à l'encodage
+
+  service_id           String?          @db.Uuid
+  quantite             Int              @default(1)
+  created_by           Int
+  created_at           DateTime         @default(now())
+  resident             Resident         @relation(fields: [id_resident], references: [id_resident])
+  // onDelete: Restrict — interdit la suppression physique d'une entrée encore référencée.
+  // Le « retrait » d'une boisson passe par actif=false (soft-delete), donc la FK
+  // historique reste valide ; le montant, lui, vient de toute façon du snapshot.
+  boisson_catalogue    BoissonCatalogue @relation(fields: [id_boisson_catalogue], references: [id_boisson_catalogue], onDelete: Restrict)
+  utilisateur          Utilisateur      @relation(fields: [created_by], references: [id_utilisateur])
+
+  @@index([date_service, id_resident])
+}
+
+model Utilisateur {
+  id_utilisateur Int        @id @default(autoincrement())
+  login          String     @unique
+  prenom         String
+  code_pin       String
+  role           Role
+  actif          Boolean    @default(true)
+  created_at     DateTime   @default(now())
+  last_login     DateTime?
+  commandes      Commande[]
+  allergies      Allergie[]
+  boissons       Boisson[]
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────
+
+enum Role {
+  secretaire
+  cuisine
+  serveur
+  admin
+}
+
+enum TypeRepas {
+  petit_dejeuner
+  diner
+  souper
+}
+
+enum StatutCommande {
+  active
+  annulee_temps
+  annulee_retard
+}
+
+enum TypeAllergie {
+  allergie
+  intolerance
+  regime
+}
+
+enum CategorieOption {
+  entree
+  plat
+  plat_substitution
+  dessert
+  fruits
+  yaourt
+  soupe
+  soupe_dessert
+  repas_complet
+  plat_dessert
+  plat_seul
+}
+
+enum TypeClient {
+  resident
+  invite_externe
+  invite_resident
+}
