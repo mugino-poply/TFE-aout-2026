@@ -1,7 +1,7 @@
 import prisma from "../src/lib/prisma.js";
 import bcrypt from "bcrypt";
 
-const BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 12;
 
 const utilisateurs = [
   { login: "secretaire1", prenom: "Olivia", code: "8181", role: "secretaire" as const },
