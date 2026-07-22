@@ -60,4 +60,15 @@ describe("authenticateToken", () => {
     expect(response.body).toEqual(expected401);
   });
 
+  it('rejette un token malformé', async () => {
+    const token = 'token.malformé'
+
+    const response = await request(app)
+      .get('/protected')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual(expected401);
+  });
+
 });
