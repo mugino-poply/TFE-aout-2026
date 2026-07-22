@@ -6,9 +6,14 @@ export function authenticateToken(req, res, next) {
     return res.status(401).json({ error: "Token invalide" });
   }
 
-  const token = authHeader.split(' ')[1];
-  const payload = jwt.verify(token, process.env.JWT_SECRET);
-  req.user = { userId: payload.userId, role: payload.role };
+  const [, token] = authHeader.split(' ');
+
+  try {
+    const { userId, role } = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { userId, role };
+  } catch {
+    return res.status(401).json({ error: "Token invalide" });
+  }
 
   next();
 }
