@@ -7,7 +7,6 @@ import jwt from "jsonwebtoken";
 
 describe("POST /api/auth/login", () => {
   let userActif;
-  let body2;
   const pinActif = "0042";
   const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 4;
   const expected401 = { error: "Identifiants incorrects" };
