@@ -31,11 +31,26 @@ describe("authenticateToken", () => {
     expect(response.body.user).toEqual({ userId: 999, role: 'secretaire' });
   });
 
-    it('rejette un token avec signature invalide', async () => {
+  it('rejette un token avec signature invalide', async () => {
     const token = jwt.sign(
       { userId: 999, role: 'secretaire' }, 
       'un-autre-secret'
     )
+
+    const response = await request(app)
+      .get('/protected')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual(expected401);
+  });
+
+  it('rejette un token expiré', async () => {
+    const token = jwt.sign(
+      { userId: 999, role: 'secretaire' },
+      process.env.JWT_SECRET,
+      { expiresIn: '-1s' }
+    );
 
     const response = await request(app)
       .get('/protected')
