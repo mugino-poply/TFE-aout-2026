@@ -25,4 +25,13 @@ describe("requireRole", () => {
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: "Accès refusé" });
   });
+
+  it("200 si le rôle est dans la liste autorisée", async () => {
+    const res = await request(app)
+      .get("/protected-role")
+      .set("X-Test-Role", "secretaire");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
 });
