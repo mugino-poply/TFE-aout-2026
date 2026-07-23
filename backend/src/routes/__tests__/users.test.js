@@ -44,4 +44,9 @@ describe("GET /api/users", () => {
 
     expect(res.body.map(u => u.id_utilisateur)).not.toContain(userInactif.id_utilisateur)
   });
+
+  it("reste accessible sans header Authorization (route publique)", async () => {
+    const res = await request(app).get("/api/users");
+    expect(res.status).toBe(200);
+  });
 });

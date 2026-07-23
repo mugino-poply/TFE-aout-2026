@@ -106,4 +106,11 @@ describe("POST /api/auth/login", () => {
     expect(res.body.error).toBe("Code invalide");
   });
 
+  it("reste accessible sans header Authorization (route publique)", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ id_utilisateur: userActif.id_utilisateur, code: pinActif });
+    expect(res.status).toBe(200);
+  });
+
 });
