@@ -34,4 +34,12 @@ describe("requireRole", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
   });
+
+  it("401 si le rôle est absent", async () => {
+    const res = await request(app)
+      .get("/protected-role")
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: "Token invalide" });
+  });
 });

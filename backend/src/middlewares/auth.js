@@ -20,6 +20,7 @@ export function authenticateToken(req, res, next) {
 
 export function requireRole(roles) {
   return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: "Token invalide" })
     if (roles.includes(req.user.role)) {
       next();
     } else {
