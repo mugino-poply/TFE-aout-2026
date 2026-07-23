@@ -19,5 +19,5 @@ export function authenticateToken(req, res, next) {
 }
 
 export function requireRole(roles) {
-  return (req, res, next) => next();
+  return (req, res, next) => res.status(403).json({ error: "Accès refusé" });
 }
