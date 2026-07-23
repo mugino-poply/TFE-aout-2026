@@ -9,7 +9,8 @@ describe("requireRole", () => {
   app.get(
     "/protected-role",
     (req, res, next) => {
-      req.user = { userId: 1, role: "cuisine" };
+      const testRole = req.headers["x-test-role"];
+      if (testRole) req.user = { userId: 1, role: testRole };
       next();
     },
     requireRole(["secretaire"]),
@@ -17,7 +18,9 @@ describe("requireRole", () => {
   );
 
   it("403 si le rôle n'est pas dans la liste autorisée", async () => {
-    const res = await request(app).get("/protected-role");
+    const res = await request(app)
+      .get("/protected-role")
+      .set("X-Test-Role", "cuisine");
 
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: "Accès refusé" });
