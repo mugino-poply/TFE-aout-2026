@@ -18,6 +18,6 @@ export function authenticateToken(req, res, next) {
   next();
 }
 
-export function requireRole(...roles) {
+export function requireRole(roles) {
   return (req, res, next) => next();
 }
