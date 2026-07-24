@@ -2,6 +2,7 @@
 import express from "express";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
+import appartementsRouter from "./routes/appartements.js";
 
 const app = express();
 
@@ -9,5 +10,6 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/appartements", appartementsRouter);
 
 export default app;
