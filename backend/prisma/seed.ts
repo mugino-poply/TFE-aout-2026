@@ -10,6 +10,27 @@ const utilisateurs = [
   { login: "admin1", prenom: "Hippolyte", code: "2911", role: "admin" as const },
 ];
 
+// Invariants du seed pour US-04.
+// Toute modif ici doit être répercutée dans les tests qui en dépendent.
+//
+// 88 apparts, numéros 3 à 90, id_appartement = numero.
+// Appart 3 : couple actif, Giselle + Pierrot VanDenStraat.
+// Appart 4 : occupant unique actif, Hervé Raskin.
+// Appart 5 : vacant.
+// Appart 6 : occupant unique inactif, Baudouin Koning.
+// Appart 7 : mixte, Francis De Jonghe actif + Leopold Oud inactif.
+// Apparts 8 à 90 : vides.
+// Invariant modèle : actif = false => date_sortie renseignée ; actif = true => date_sortie = null.
+
+const residents = [
+  { id_appartement: 3, prenom: "Giselle", nom: "VanDenStraat", actif: true, date_sortie: null },
+  { id_appartement: 3, prenom: "Pierrot", nom: "VanDenStraat", actif: true, date_sortie: null },
+  { id_appartement: 4, prenom: "Hervé", nom: "Raskin", actif: true, date_sortie: null },
+  { id_appartement: 6, prenom: "Baudouin", nom: "Koning", actif: false, date_sortie: new Date("2024-06-15") },
+  { id_appartement: 7, prenom: "Francis", nom: "De Jonghe", actif: true, date_sortie: null },
+  { id_appartement: 7, prenom: "Leopold", nom: "Oud", actif: false, date_sortie: new Date("2024-09-01") },
+];
+
 async function main() {
   console.log("Seeding utilisateurs...");
 
@@ -35,6 +56,30 @@ async function main() {
     console.log(`  ${u.role.padEnd(10)} ${u.prenom} (${u.login})`);
   }
 
+  console.log("Seeding appartements et résidents...");
+
+  // Ordre imposé par les FK : d'abord Resident, puis Appartement.
+  await prisma.resident.deleteMany({});
+  await prisma.appartement.deleteMany({});
+
+  const apparts = Array.from({ length: 88 }, (_, i) => ({
+    id_appartement: i + 3,
+    numero: i + 3,
+  }));
+  await prisma.appartement.createMany({ data: apparts });
+
+  const now = new Date();
+  await prisma.resident.createMany({
+    data: residents.map((r) => ({
+      id_appartement: r.id_appartement,
+      prenom: r.prenom,
+      nom: r.nom,
+      actif: r.actif,
+      date_entree: now,
+    })),
+  });
+
+  console.log(`  ${apparts.length} appartements, ${residents.length} résidents`);
   console.log("Seed terminé");
 }
 

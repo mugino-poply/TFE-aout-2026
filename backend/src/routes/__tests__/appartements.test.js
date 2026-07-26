@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import app from "../../app.js";
 
 describe("GET /api/appartements", () => {
@@ -8,5 +9,85 @@ describe("GET /api/appartements", () => {
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Token invalide" });
+  });
+
+  describe("200 niveau 3", () => {
+    let res;
+
+    beforeAll(async () => {
+      // Token fictif : authenticateToken ne consulte pas la DB, il vérifie
+      // seulement la signature et lit userId + role du payload. Tant que la
+      // route n'utilise pas req.user.userId pour dériver du contenu (ce qui
+      // est le cas ici : accès identique pour les 4 rôles), userId est un
+      // placeholder. Rôle secrétaire = rôle principal du backlog US-04.
+      const token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+
+      res = await request(app)
+        .get("/api/appartements")
+        .set("Authorization", `Bearer ${token}`);
+    });
+
+    it("répond 200 avec un tableau", () => {
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it("retourne les 88 appartements", () => {
+      expect(res.body).toHaveLength(88);
+    });
+
+    it("appart 3 : couple actif (Giselle + Pierrot VanDenStraat)", () => {
+      const appart = res.body.find((a) => a.numero === 3);
+      expect(appart).toBeDefined();
+      expect(appart.occupants).toHaveLength(2);
+      const prenoms = appart.occupants.map((o) => o.prenom).sort();
+      expect(prenoms).toEqual(["Giselle", "Pierrot"]);
+    });
+
+    it("appart 4 : occupant unique actif (Hervé Raskin)", () => {
+      const appart = res.body.find((a) => a.numero === 4);
+      expect(appart).toBeDefined();
+      expect(appart.occupants).toHaveLength(1);
+      expect(appart.occupants[0].prenom).toBe("Hervé");
+    });
+
+    it("appart 5 : vacant", () => {
+      const appart = res.body.find((a) => a.numero === 5);
+      expect(appart).toBeDefined();
+      expect(appart.occupants).toEqual([]);
+    });
+
+    it("appart 6 : résident inactif filtré (Baudouin Koning absent)", () => {
+      const appart = res.body.find((a) => a.numero === 6);
+      expect(appart).toBeDefined();
+      expect(appart.occupants).toEqual([]);
+    });
+
+    it("appart 7 : Francis actif présent, Leopold inactif filtré", () => {
+      const appart = res.body.find((a) => a.numero === 7);
+      expect(appart).toBeDefined();
+      expect(appart.occupants).toHaveLength(1);
+      expect(appart.occupants[0].prenom).toBe("Francis");
+    });
+
+    it("chaque occupant expose id_resident, prenom, nom", () => {
+      const appart = res.body.find((a) => a.numero === 3);
+      const occupant = appart.occupants[0];
+      expect(occupant).toHaveProperty("id_resident");
+      expect(occupant).toHaveProperty("prenom");
+      expect(occupant).toHaveProperty("nom");
+    });
+
+    it("aucun occupant de l'appart 3 n'expose le champ actif (filtre transparent)", () => {
+      const couple = res.body.find((a) => a.numero === 3);
+      expect(couple).toBeDefined();
+      couple.occupants.forEach((o) => {
+        expect(o).not.toHaveProperty("actif");
+      });
+    });
   });
 });
