@@ -140,4 +140,24 @@ describe("GET /api/appartements/:numero/residents", () => {
       expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
     });
   });
+  describe("404 sur appartement inexistant", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("retourne 404 quand le numéro est bien formé mais absent de la base (999)", async () => {
+      const res = await request(app)
+        .get("/api/appartements/999/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: "Appartement introuvable" });
+    });
+  });
 });
