@@ -30,4 +30,12 @@ appartementsRouter.get("/", async (req, res) => {
   res.status(200).json(response);
 });
 
+appartementsRouter.get("/:numero/residents", (req, res) => {
+  const numero = Number(req.params.numero);
+  if (!Number.isInteger(numero) || numero <= 0) {
+    return res.status(400).json({ error: "Numéro d'appartement invalide" });
+  }
+  return res.sendStatus(200);
+});
+
 export default appartementsRouter;
