@@ -91,3 +91,53 @@ describe("GET /api/appartements", () => {
     });
   });
 });
+
+describe("GET /api/appartements/:numero/residents", () => {
+  describe("400 sur :numero invalide (forme)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("rejette une valeur non numérique (abc)", async () => {
+      const res = await request(app)
+        .get("/api/appartements/abc/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
+    });
+
+    it("rejette zéro", async () => {
+      const res = await request(app)
+        .get("/api/appartements/0/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
+    });
+
+    it("rejette une valeur négative (-5)", async () => {
+      const res = await request(app)
+        .get("/api/appartements/-5/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
+    });
+
+    it("rejette une valeur décimale (3.5)", async () => {
+      const res = await request(app)
+        .get("/api/appartements/3.5/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
+    });
+  });
+});
