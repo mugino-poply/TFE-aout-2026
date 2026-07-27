@@ -38,13 +38,30 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 
   const appart = await prisma.appartement.findUnique({
     where: { numero },
+    select: {
+      residents: {
+        where: { actif: true },
+        select: {
+          id_resident: true,
+          prenom: true,
+          nom: true,
+          allergies: {
+            select: {
+              libelle: true,
+              type: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (appart === null) {
     return res.status(404).json({ error: "Appartement introuvable" });
   }
 
-  return res.sendStatus(200);
+  const { residents: occupants } = appart;
+  return res.status(200).json({ numero, occupants });
 });
 
 export default appartementsRouter;
