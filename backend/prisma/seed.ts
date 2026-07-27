@@ -15,6 +15,7 @@ const utilisateurs = [
 //
 // 88 apparts, numéros 3 à 90, id_appartement = numero.
 // Appart 3 : couple actif, Giselle + Pierrot VanDenStraat.
+//   Giselle a une allergie : "Arachides" (type allergie).
 // Appart 4 : occupant unique actif, Hervé Raskin.
 // Appart 5 : vacant.
 // Appart 6 : occupant unique inactif, Baudouin Koning.
@@ -56,9 +57,10 @@ async function main() {
     console.log(`  ${u.role.padEnd(10)} ${u.prenom} (${u.login})`);
   }
 
-  console.log("Seeding appartements et résidents...");
+  console.log("Seeding appartements, résidents et allergies...");
 
-  // Ordre imposé par les FK : d'abord Resident, puis Appartement.
+  // Ordre imposé par les FK : Allergie -> Resident -> Appartement.
+  await prisma.allergie.deleteMany({});
   await prisma.resident.deleteMany({});
   await prisma.appartement.deleteMany({});
 
@@ -76,10 +78,29 @@ async function main() {
       nom: r.nom,
       actif: r.actif,
       date_entree: now,
+      date_sortie: r.date_sortie,
     })),
   });
 
-  console.log(`  ${apparts.length} appartements, ${residents.length} résidents`);
+  // Allergie de Giselle : lookup nécessaire parce que id_resident est
+  // autoincrement (pas connu à l'avance après un createMany).
+  const giselle = await prisma.resident.findFirst({
+    where: { prenom: "Giselle", nom: "VanDenStraat" },
+  });
+  const admin = await prisma.utilisateur.findUnique({
+    where: { login: "admin1" },
+  });
+
+  await prisma.allergie.create({
+    data: {
+      id_resident: giselle!.id_resident,
+      libelle: "Arachides",
+      type: "allergie",
+      created_by: admin!.id_utilisateur,
+    },
+  });
+
+  console.log(`  ${apparts.length} appartements, ${residents.length} résidents, 1 allergie`);
   console.log("Seed terminé");
 }
 

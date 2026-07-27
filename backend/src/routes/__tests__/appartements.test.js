@@ -160,4 +160,64 @@ describe("GET /api/appartements/:numero/residents", () => {
       expect(res.body).toEqual({ error: "Appartement introuvable" });
     });
   });
+
+  describe("200 happy path", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("appart 3 : couple actif avec allergies imbriquées", async () => {
+      const res = await request(app)
+        .get("/api/appartements/3/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.numero).toBe(3);
+      expect(res.body.occupants).toHaveLength(2);
+
+      const giselle = res.body.occupants.find((o) => o.prenom === "Giselle");
+      const pierrot = res.body.occupants.find((o) => o.prenom === "Pierrot");
+
+      expect(giselle).toEqual({
+        id_resident: expect.any(Number),
+        prenom: "Giselle",
+        nom: "VanDenStraat",
+        allergies: [{ libelle: "Arachides", type: "allergie" }],
+      });
+
+      expect(pierrot).toEqual({
+        id_resident: expect.any(Number),
+        prenom: "Pierrot",
+        nom: "VanDenStraat",
+        allergies: [],
+      });
+    });
+
+    it("appart 7 : Francis actif présent, Leopold inactif filtré", async () => {
+      const res = await request(app)
+        .get("/api/appartements/7/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.numero).toBe(7);
+      expect(res.body.occupants).toHaveLength(1);
+      expect(res.body.occupants[0].prenom).toBe("Francis");
+      expect(res.body.occupants[0]).not.toHaveProperty("actif");
+    });
+
+    it("appart 5 : vacant, 200 avec occupants vide", async () => {
+      const res = await request(app)
+        .get("/api/appartements/5/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ numero: 5, occupants: [] });
+    });
+  });
 });
