@@ -57,4 +57,13 @@ residentsRouter.post("/", requireRole(["secretaire"]), async (req, res) => {
 
 });
 
+residentsRouter.patch("/:id", requireRole(["secretaire"]), (req, res) => {
+  const id = Number(req.params.id);
+
+  // Forme : :id doit être un entier positif.
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "Identifiant de résident invalide" });
+  }
+});
+
 export default residentsRouter;
