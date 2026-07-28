@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "dotenv -e .env.test -- bash -c 'npx prisma migrate reset --force && npx prisma db seed && vitest run'",
+    "test": "dotenv -e .env.test -- bash -c 'npx prisma migrate reset --force && vitest run'",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
   },
