@@ -57,4 +57,35 @@ describe("POST /api/residents", () => {
       expect(res.body).toEqual({ error: "Appartement introuvable" });
     });
   });
+
+  describe("201 création sur appartement à 1 actif", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("crée le résident et renvoie 201 quand l'appart a 1 actif (< 2)", async () => {
+      // Appart 4 : un seul occupant actif (Hervé Raskin) au seed US-04, donc on peut ajouter un occupant
+      const res = await request(app)
+        .post("/api/residents")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          prenom: "Jean",
+          nom: "Dupont",
+          numero_appartement: 4,
+          date_entree: "2026-01-15",
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty("id_resident");
+      expect(res.body.prenom).toBe("Jean");
+      expect(res.body.nom).toBe("Dupont");
+    });
+  });
+
 });
