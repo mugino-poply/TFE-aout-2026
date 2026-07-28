@@ -112,7 +112,7 @@ describe("POST /api/residents", () => {
         });
 
       expect(res.status).toBe(409);
-      expect(res.body).toEqual({ error: "Appartement complet (maximum deux residents actifs)" });
+      expect(res.body).toEqual({ error: "Appartement complet (maximum deux résidents actifs)" });
     });
   });
 

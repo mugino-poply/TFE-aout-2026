@@ -23,6 +23,14 @@ residentsRouter.post("/", requireRole(["secretaire"]), async (req, res) => {
     return res.status(404).json({ error: "Appartement introuvable" });
   }
 
+  // Règle couple : maximum 2 résidents actifs par appartement
+  const actifs = await prisma.resident.count({
+    where: { id_appartement: appart.id_appartement, actif: true },
+  });
+  if (actifs >= 2) {
+    return res.status(409).json({ error: "Appartement complet (maximum deux résidents actifs)" });
+  }
+
   // Création : le payload parle métier (numero_appartement),
   // le connect parle relation (numero @unique côté schéma)
   const resident = await prisma.resident.create({
