@@ -144,5 +144,30 @@ describe("POST /api/residents", () => {
       expect(res.body).toHaveProperty("id_resident");
     });
   });
+});
 
+describe("PATCH /api/residents/:id", () => {
+  describe("400 sur :id invalide (forme)", () => {
+    let token;
+
+    beforeAll(() => {
+      // Token valide volontairement : l'auth passe, donc le rouge vient du
+      // handler PATCH pas encore monté (404)
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("rejette un :id non entier (abc)", async () => {
+      const res = await request(app)
+        .patch("/api/residents/abc")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ prenom: "Jean" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
+    });
+  });
 });
