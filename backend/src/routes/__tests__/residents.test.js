@@ -116,4 +116,33 @@ describe("POST /api/residents", () => {
     });
   });
 
+  describe("201 place libre malgré un inactif (métier, filtre actif)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("autorise un nouvel actif quand l'appart a 1 actif + 1 inactif", async () => {
+      // Appart 7 au seed US-04 : Francis actif + Leopold inactif.
+      // Le count ne doit voir que Francis (actif) : la place reste libre
+      const res = await request(app)
+        .post("/api/residents")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          prenom: "Jean",
+          nom: "Dupont",
+          numero_appartement: 7,
+          date_entree: "2026-01-15",
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty("id_resident");
+    });
+  });
+
 });
