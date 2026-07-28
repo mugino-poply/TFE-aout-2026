@@ -23,6 +23,25 @@ residentsRouter.post("/", requireRole(["secretaire"]), async (req, res) => {
     return res.status(404).json({ error: "Appartement introuvable" });
   }
 
+  // Création : le payload parle métier (numero_appartement),
+  // le connect parle relation (numero @unique côté schéma)
+  const resident = await prisma.resident.create({
+    data: {
+      prenom,
+      nom,
+      date_entree: new Date(date_entree),
+      appartement: { connect: { numero: numero_appartement } },
+    },
+    select: {
+      id_resident: true,
+      prenom: true,
+      nom: true,
+      date_entree: true,
+    },
+  });
+
+  return res.status(201).json(resident);
+
 });
 
 export default residentsRouter;
