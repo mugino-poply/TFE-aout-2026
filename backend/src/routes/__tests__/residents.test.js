@@ -88,4 +88,32 @@ describe("POST /api/residents", () => {
     });
   });
 
+  describe("409 appartement plein (metier, regle couple)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("refuse un 3e resident actif quand l'appart en a deja 2", async () => {
+      // Appart 3 : couple actif 
+      const res = await request(app)
+        .post("/api/residents")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          prenom: "Jean",
+          nom: "Dupont",
+          numero_appartement: 3,
+          date_entree: "2026-01-15",
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: "Appartement complet (maximum deux residents actifs)" });
+    });
+  });
+
 });
