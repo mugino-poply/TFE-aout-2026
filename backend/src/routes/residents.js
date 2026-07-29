@@ -79,6 +79,10 @@ residentsRouter.patch("/:id", requireRole(["secretaire"]), async (req, res) => {
   if (prenom !== undefined) data.prenom = prenom;
   if (nom !== undefined) data.nom = nom;
 
+  if (Object.keys(data).length === 0) {
+    return res.status(400).json({ error: "Aucun champ à modifier" });
+  }
+
   const modifie = await prisma.resident.update({
     where: { id_resident: id },
     data,
