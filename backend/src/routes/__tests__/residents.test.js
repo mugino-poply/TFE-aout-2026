@@ -170,4 +170,27 @@ describe("PATCH /api/residents/:id", () => {
       expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
     });
   });
+
+  describe("404 résident inexistant (existence)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("retourne 404 quand l'id est bien formé mais absent de la base", async () => {
+      const res = await request(app)
+        .patch("/api/residents/999999")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ prenom: "Jean" });
+
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: "Résident introuvable" });
+    });
+  });
+
 });
