@@ -72,6 +72,19 @@ residentsRouter.patch("/:id", requireRole(["secretaire"]), async (req, res) => {
   if (resident === null) {
     return res.status(404).json({ error: "Résident introuvable" });
   }
+
+  // Whitelist stricte : seuls prenom et nom sont modifiables (anti mass-assignment)
+  const { prenom, nom } = req.body;
+  const data = {};
+  if (prenom !== undefined) data.prenom = prenom;
+  if (nom !== undefined) data.nom = nom;
+
+  const modifie = await prisma.resident.update({
+    where: { id_resident: id },
+    data,
+    select: { id_resident: true, prenom: true, nom: true, date_entree: true },
+  });
+  return res.status(200).json(modifie);
 });
 
 export default residentsRouter;
