@@ -83,6 +83,11 @@ residentsRouter.patch("/:id", requireRole(["secretaire"]), async (req, res) => {
     return res.status(400).json({ error: "Aucun champ à modifier" });
   }
 
+  const vide = Object.values(data).some((v) => v.trim() === "");
+  if (vide) {
+    return res.status(400).json({ error: "Champ obligatoire vide" });
+  }
+
   const modifie = await prisma.resident.update({
     where: { id_resident: id },
     data,
