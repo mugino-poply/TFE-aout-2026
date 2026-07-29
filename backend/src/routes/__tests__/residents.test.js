@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import app from "../../app.js";
+import prisma from "../../lib/prisma.js";
 
 describe("POST /api/residents", () => {
   describe("400 champ obligatoire manquant (forme)", () => {
@@ -190,6 +191,38 @@ describe("PATCH /api/residents/:id", () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: "Résident introuvable" });
+    });
+  });
+
+  describe("200 modification appliquée (contenu)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("modifie le prenom et renvoie 200 avec le résident à jour", async () => {
+      // Francis De Jonghe (appart 7) au seed, id autoincrement inconnu d'avance
+      const francis = await prisma.resident.findFirst({
+        where: { prenom: "Francis", nom: "De Jonghe" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/residents/${francis.id_resident}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ prenom: "François" });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        id_resident: francis.id_resident,
+        prenom: "François",
+        nom: "De Jonghe",
+        date_entree: expect.any(String),
+      });
     });
   });
 
