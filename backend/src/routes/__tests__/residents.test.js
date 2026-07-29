@@ -267,4 +267,31 @@ describe("PATCH /api/residents/:id", () => {
     });
   });
 
+  describe("400 valeur vide sur champ whitelisté (contenu)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("rejette un prenom vide", async () => {
+      // Giselle (appart 3), existante : on passe forme + existence, on teste le contenu
+      const giselle = await prisma.resident.findFirst({
+        where: { prenom: "Giselle", nom: "VanDenStraat" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/residents/${giselle.id_resident}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ prenom: "" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Champ obligatoire vide" });
+    });
+  });
+
 });
