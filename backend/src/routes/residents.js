@@ -96,12 +96,20 @@ residentsRouter.patch("/:id", requireRole(["secretaire"]), async (req, res) => {
   return res.status(200).json(modifie);
 });
 
-residentsRouter.delete("/:id", requireRole(["secretaire"]), (req, res) => {
+residentsRouter.delete("/:id", requireRole(["secretaire"]), async (req, res) => {
   const id = Number(req.params.id);
 
   // Forme : :id doit être un entier positif
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ error: "Identifiant de résident invalide" });
+  }
+
+  // Existence : le résident ciblé existe-t-il ?
+  const resident = await prisma.resident.findUnique({
+    where: { id_resident: id },
+  });
+  if (resident === null) {
+    return res.status(404).json({ error: "Résident introuvable" });
   }
 
 });
