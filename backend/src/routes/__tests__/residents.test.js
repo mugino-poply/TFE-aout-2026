@@ -473,4 +473,30 @@ describe("GET /api/residents", () => {
       expect(baudouin).toBeUndefined();
     });
   });
+
+  describe("?tous=1 : actifs + archivés (contenu)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("inclut les résidents archivés (Baudouin présent)", async () => {
+      const res = await request(app)
+        .get("/api/residents?tous=1")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+
+      // Même témoin, inversé : Baudouin doit être là en mode tous
+      const baudouin = res.body.find((r) => r.nom === "Koning");
+      expect(baudouin).toBeDefined();
+      expect(baudouin.actif).toBe(false);
+    });
+  });
+
 });
