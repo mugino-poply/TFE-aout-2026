@@ -294,4 +294,39 @@ describe("PATCH /api/residents/:id", () => {
     });
   });
 
+  describe("whitelist stricte : champ interdit ignoré (sécurité, anti mass-assignment)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("applique prenom mais n'écrit pas actif glissé dans le body", async () => {
+      // Hervé Raskin (appart 4, actif: true au seed). L'attaque pousse actif: false.
+      // État de départ (true) différent de l'attaque (false) : une fuite serait observable.
+      const herve = await prisma.resident.findFirst({
+        where: { prenom: "Hervé", nom: "Raskin" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/residents/${herve.id_resident}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ prenom: "Modifié", actif: false });
+
+      expect(res.status).toBe(200);
+
+      // La vérité sur actif = la base, pas res.body (le select n'expose pas actif).
+      const enBase = await prisma.resident.findUnique({
+        where: { id_resident: herve.id_resident },
+        select: { prenom: true, actif: true },
+      });
+      expect(enBase.prenom).toBe("Modifié"); // le whitelisté a bien été écrit
+      expect(enBase.actif).toBe(true);       // l'interdit a été ignoré
+    });
+  });
+
 });
