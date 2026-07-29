@@ -375,4 +375,43 @@ describe("DELETE /api/residents/:id", () => {
     });
   });
 
+  describe("200 archivage d'un résident actif (succès)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("archive le résident : actif false + date_sortie posée, 200", async () => {
+      // Résident jetable créé pour ce test (appart 5, vacant au seed)
+      const jetable = await prisma.resident.create({
+        data: {
+          id_appartement: 5,
+          prenom: "Bart",
+          nom: "Di Rupo",
+          actif: true,
+          date_entree: new Date(),
+        },
+      });
+
+      const res = await request(app)
+        .delete(`/api/residents/${jetable.id_resident}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        id_resident: jetable.id_resident,
+        prenom: "Bart",
+        nom: "Di Rupo",
+        actif: false,
+        date_sortie: expect.any(String),
+      });
+    });
+  });
+
+
 });
