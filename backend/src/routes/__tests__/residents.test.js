@@ -413,5 +413,37 @@ describe("DELETE /api/residents/:id", () => {
     });
   });
 
+  describe("200 no-op sur résident déjà archivé (idempotence)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("préserve la date_sortie historique d'un déjà-archivé", async () => {
+      // Baudouin Koning (appart 6) : déjà archivé au seed, date_sortie = 2024-06-15.
+      const baudouin = await prisma.resident.findFirst({
+        where: { prenom: "Baudouin", nom: "Koning" },
+      });
+
+      const res = await request(app)
+        .delete(`/api/residents/${baudouin.id_resident}`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+
+      // La vérité est en base : date_sortie doit rester 2024-06-15, pas new Date().
+      const enBase = await prisma.resident.findUnique({
+        where: { id_resident: baudouin.id_resident },
+        select: { actif: true, date_sortie: true },
+      });
+      expect(enBase.actif).toBe(false);
+      expect(enBase.date_sortie.getTime()).toBe(new Date("2024-06-15").getTime());
+    });
+  });
 
 });
