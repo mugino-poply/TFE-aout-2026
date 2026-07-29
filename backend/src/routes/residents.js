@@ -7,6 +7,25 @@ const residentsRouter = Router();
 // Router-level
 residentsRouter.use(authenticateToken);
 
+residentsRouter.get("/", requireRole(["secretaire"]), async (req, res) => {
+  // Flag d'affichage : égalité stricte à "1"
+  // Tout sauf "1": défaut permissif = actifs seulement
+  const tous = req.query.tous === "1";
+
+  const residents = await prisma.resident.findMany({
+    where: tous ? undefined : { actif: true },
+    select: {
+      id_resident: true,
+      prenom: true,
+      nom: true,
+      actif: true,
+      date_sortie: true,
+    },
+  });
+
+  return res.status(200).json(residents);
+});
+
 residentsRouter.post("/", requireRole(["secretaire"]), async (req, res) => {
 
   const { prenom, nom, numero_appartement, date_entree } = req.body;
