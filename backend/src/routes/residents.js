@@ -112,7 +112,18 @@ residentsRouter.delete("/:id", requireRole(["secretaire"]), async (req, res) => 
     return res.status(404).json({ error: "Résident introuvable" });
   }
 
-  // Archivage aveugle : pose actif false + date_sortie sans condition
+  // Idempotence : ne réécrire que sur la transition actif true => false
+  // Déjà archivé => no-op, on préserve la date_sortie historique
+  if (resident.actif === false) {
+    return res.status(200).json({
+      id_resident: resident.id_resident,
+      prenom: resident.prenom,
+      nom: resident.nom,
+      actif: resident.actif,
+      date_sortie: resident.date_sortie,
+    });
+  }
+
   const archive = await prisma.resident.update({
     where: { id_resident: id },
     data: { actif: false, date_sortie: new Date() },
