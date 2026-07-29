@@ -330,3 +330,26 @@ describe("PATCH /api/residents/:id", () => {
   });
 
 });
+
+describe("DELETE /api/residents/:id", () => {
+  describe("400 sur :id invalide (forme)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("rejette un :id non entier (abc)", async () => {
+      const res = await request(app)
+        .delete("/api/residents/abc")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
+    });
+  });
+});
