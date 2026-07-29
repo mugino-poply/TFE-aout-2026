@@ -225,5 +225,46 @@ describe("PATCH /api/residents/:id", () => {
       });
     });
   });
+  
+  describe("400 aucun champ modifiable (contenu)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("rejette un body vide", async () => {
+      // Pierrot (appart 3), résident existant : on passe l'existence, on teste le contenu
+      const pierrot = await prisma.resident.findFirst({
+        where: { prenom: "Pierrot", nom: "VanDenStraat" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/residents/${pierrot.id_resident}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Aucun champ à modifier" });
+    });
+
+    it("rejette un body ne contenant que des champs interdits", async () => {
+      const pierrot = await prisma.resident.findFirst({
+        where: { prenom: "Pierrot", nom: "VanDenStraat" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/residents/${pierrot.id_resident}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ actif: true });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: "Aucun champ à modifier" });
+    });
+  });
 
 });
