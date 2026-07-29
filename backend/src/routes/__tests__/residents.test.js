@@ -447,3 +447,30 @@ describe("DELETE /api/residents/:id", () => {
   });
 
 });
+
+describe("GET /api/residents", () => {
+  describe("défaut : actifs seulement (contenu)", () => {
+    let token;
+
+    beforeAll(() => {
+      token = jwt.sign(
+        { userId: 1, role: "secretaire" },
+        process.env.JWT_SECRET,
+        { expiresIn: "11h" }
+      );
+    });
+
+    it("exclut les résidents archivés (Baudouin absent)", async () => {
+      const res = await request(app)
+        .get("/api/residents")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+
+      // Témoin : Baudouin Koning, inactif au seed. Cherché, jamais compté.
+      const baudouin = res.body.find((r) => r.nom === "Koning");
+      expect(baudouin).toBeUndefined();
+    });
+  });
+});
