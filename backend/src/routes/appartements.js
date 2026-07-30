@@ -64,11 +64,24 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
   return res.status(200).json({ numero, occupants });
 });
 
-appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), (req, res) => {
+appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), async (req, res) => {
+  const numero = Number(req.params.numero);
   const { id_resident_sortant } = req.body;
  
   if (!Number.isInteger(id_resident_sortant)) {
     return res.status(400).json({ error: "id_resident_sortant invalide" });
+  }
+ 
+  const appart = await prisma.appartement.findUnique({ where: { numero } });
+  if (appart === null) {
+    return res.status(404).json({ error: "appartement introuvable" });
+  }
+ 
+  const sortant = await prisma.resident.findUnique({
+    where: { id_resident: id_resident_sortant },
+  });
+  if (sortant === null || sortant.id_appartement !== appart.id_appartement) {
+    return res.status(404).json({ error: "sortant introuvable dans cet appartement" });
   }
  
   return res.sendStatus(501);
