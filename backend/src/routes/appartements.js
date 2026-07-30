@@ -84,6 +84,10 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
     return res.status(404).json({ error: "sortant introuvable dans cet appartement" });
   }
  
+  if (sortant.actif === false) {
+    return res.status(409).json({ error: "le sortant est deja inactif" });
+  }
+ 
   return res.sendStatus(501);
 });
 
