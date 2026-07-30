@@ -65,7 +65,13 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 });
 
 appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), (req, res) => {
-  res.sendStatus(501);
+  const { id_resident_sortant } = req.body;
+ 
+  if (!Number.isInteger(id_resident_sortant)) {
+    return res.status(400).json({ error: "id_resident_sortant invalide" });
+  }
+ 
+  return res.sendStatus(501);
 });
 
 export default appartementsRouter;
