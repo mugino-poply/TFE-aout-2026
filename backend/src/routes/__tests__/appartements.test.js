@@ -313,3 +313,30 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
   });
 
 });
+
+describe("POST /api/appartements/:numero/changement - changement reussi", () => {
+  let res;
+ 
+  beforeAll(async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+ 
+    const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
+ 
+    res = await request(app)
+      .post("/api/appartements/4/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: herve.id_resident, prenom: "Marie", nom: "Dupont" });
+  });
+ 
+  it("repond 201", () => {
+    expect(res.status).toBe(201);
+  });
+ 
+  it("renvoie le nouvel entrant actif", () => {
+    expect(res.body).toMatchObject({ prenom: "Marie", nom: "Dupont", actif: true });
+  });
+});
