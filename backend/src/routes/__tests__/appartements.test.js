@@ -339,4 +339,11 @@ describe("POST /api/appartements/:numero/changement - changement reussi", () => 
   it("renvoie le nouvel entrant actif", () => {
     expect(res.body).toMatchObject({ prenom: "Marie", nom: "Dupont", actif: true });
   });
+
+  it("archive le sortant avec une date_sortie", async () => {
+    const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
+  
+    expect(herve.actif).toBe(false);
+    expect(herve.date_sortie).not.toBeNull();
+  });
 });
