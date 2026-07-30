@@ -66,29 +66,55 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 
 appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), async (req, res) => {
   const numero = Number(req.params.numero);
-  const { id_resident_sortant } = req.body;
+  const { id_resident_sortant, prenom, nom } = req.body;
  
   if (!Number.isInteger(id_resident_sortant)) {
     return res.status(400).json({ error: "id_resident_sortant invalide" });
   }
  
-  const appart = await prisma.appartement.findUnique({ where: { numero } });
-  if (appart === null) {
-    return res.status(404).json({ error: "appartement introuvable" });
-  }
+  try {
+    const entrant = await prisma.$transaction(async (tx) => {
+      const appart = await tx.appartement.findUnique({ where: { numero } });
+      if (appart === null) {
+        throw Object.assign(new Error("appartement introuvable"), { status: 404 });
+      }
  
-  const sortant = await prisma.resident.findUnique({
-    where: { id_resident: id_resident_sortant },
-  });
-  if (sortant === null || sortant.id_appartement !== appart.id_appartement) {
-    return res.status(404).json({ error: "sortant introuvable dans cet appartement" });
-  }
+      const sortant = await tx.resident.findUnique({
+        where: { id_resident: id_resident_sortant },
+      });
+      if (sortant === null || sortant.id_appartement !== appart.id_appartement) {
+        throw Object.assign(new Error("sortant introuvable dans cet appartement"), {
+          status: 404,
+        });
+      }
  
-  if (sortant.actif === false) {
-    return res.status(409).json({ error: "le sortant est deja inactif" });
-  }
+      if (sortant.actif === false) {
+        throw Object.assign(new Error("le sortant est deja inactif"), { status: 409 });
+      }
  
-  return res.sendStatus(501);
+      await tx.resident.update({
+        where: { id_resident: id_resident_sortant },
+        data: { actif: false, date_sortie: new Date() },
+      });
+ 
+      return tx.resident.create({
+        data: {
+          id_appartement: appart.id_appartement,
+          prenom,
+          nom,
+          actif: true,
+          date_entree: new Date(),
+        },
+      });
+    });
+ 
+    return res.status(201).json(entrant);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "erreur interne" });
+  }
 });
 
 export default appartementsRouter;
