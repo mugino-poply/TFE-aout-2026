@@ -221,3 +221,13 @@ describe("GET /api/appartements/:numero/residents", () => {
     });
   });
 });
+
+describe("POST /api/appartements/:numero/changement - securite", () => {
+  it("refuse sans token (401)", async () => {
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .send({});
+ 
+    expect(res.status).toBe(401);
+  });
+});
