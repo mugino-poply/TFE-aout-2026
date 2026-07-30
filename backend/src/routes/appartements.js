@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticateToken } from "../middlewares/auth.js";
+import { authenticateToken, requireRole } from "../middlewares/auth.js";
 import prisma from "../lib/prisma.js";
 
 const appartementsRouter = Router();
@@ -62,6 +62,10 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 
   const { residents: occupants } = appart;
   return res.status(200).json({ numero, occupants });
+});
+
+appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), (req, res) => {
+  res.sendStatus(501);
 });
 
 export default appartementsRouter;
