@@ -230,4 +230,20 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
  
     expect(res.status).toBe(401);
   });
+
+  it("refuse un role non secretaire (403)", async () => {
+    const tokenCuisine = jwt.sign(
+      { userId: 2, role: "cuisine" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+ 
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .set("Authorization", `Bearer ${tokenCuisine}`)
+      .send({});
+ 
+    expect(res.status).toBe(403);
+  });
+
 });
