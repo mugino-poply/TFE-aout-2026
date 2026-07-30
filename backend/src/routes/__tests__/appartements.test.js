@@ -295,4 +295,21 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
     expect(res.status).toBe(404);
   });
 
+  it("rejette un sortant deja inactif (409)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    const leopold = await prisma.resident.findFirst({ where: { nom: "Oud" } });
+  
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: leopold.id_resident, prenom: "Marie", nom: "Dupont" });
+  
+    expect(res.status).toBe(409);
+  });
+
 });
