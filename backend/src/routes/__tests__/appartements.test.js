@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import app from "../../app.js";
+import prisma from "../../lib/prisma.js";
 
 describe("GET /api/appartements", () => {
   it("401 si pas de header Authorization", async () => {
@@ -19,7 +20,7 @@ describe("GET /api/appartements", () => {
       // seulement la signature et lit userId + role du payload. Tant que la
       // route n'utilise pas req.user.userId pour dériver du contenu (ce qui
       // est le cas ici : accès identique pour les 4 rôles), userId est un
-      // placeholder. Rôle secrétaire = rôle principal du backlog US-04.
+      // placeholder. Rôle secrétaire = rôle principal du backlog US-04
       const token = jwt.sign(
         { userId: 1, role: "secretaire" },
         process.env.JWT_SECRET,
@@ -259,6 +260,39 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
       .send({ id_resident_sortant: "abc", prenom: "Marie", nom: "Dupont" });
   
     expect(res.status).toBe(400);
+  });
+
+  it("rejette un changement sur un appartement inexistant (404)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    const res = await request(app)
+      .post("/api/appartements/999/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: 1, prenom: "Marie", nom: "Dupont" });
+  
+    expect(res.status).toBe(404);
+  });
+ 
+  it("rejette un sortant qui habite un autre appartement (404)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    // Herve Raskin est actif dans l'appart 4 ; on tente de le sortir de l'appart 7
+    const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
+  
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: herve.id_resident, prenom: "Marie", nom: "Dupont" });
+  
+    expect(res.status).toBe(404);
   });
 
 });
