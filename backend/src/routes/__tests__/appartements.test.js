@@ -246,4 +246,19 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
     expect(res.status).toBe(403);
   });
 
+  it("rejette un id_resident_sortant non entier (400)", async () => {
+    const tokenSecretaire = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident_sortant: "abc", prenom: "Marie", nom: "Dupont" });
+  
+    expect(res.status).toBe(400);
+  });
+
 });
