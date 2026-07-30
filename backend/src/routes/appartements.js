@@ -74,15 +74,18 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
  
   try {
     const entrant = await prisma.$transaction(async (tx) => {
-      const appart = await tx.appartement.findUnique({ where: { numero } });
-      if (appart === null) {
+      const apparts = await tx.$queryRaw`
+        SELECT id_appartement FROM "Appartement" WHERE numero = ${numero} FOR UPDATE
+      `;
+      if (apparts.length === 0) {
         throw Object.assign(new Error("appartement introuvable"), { status: 404 });
       }
+      const appartId = Number(apparts[0].id_appartement);
  
       const sortant = await tx.resident.findUnique({
         where: { id_resident: id_resident_sortant },
       });
-      if (sortant === null || sortant.id_appartement !== appart.id_appartement) {
+      if (sortant === null || sortant.id_appartement !== appartId) {
         throw Object.assign(new Error("sortant introuvable dans cet appartement"), {
           status: 404,
         });
@@ -99,7 +102,7 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
  
       return tx.resident.create({
         data: {
-          id_appartement: appart.id_appartement,
+          id_appartement: appartId,
           prenom,
           nom,
           actif: true,
