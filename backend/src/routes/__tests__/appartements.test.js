@@ -460,4 +460,13 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
     expect(conjoint.actif).toBe(true);
     expect(conjoint.date_sortie).toBeNull();
   });
+
+  it("crée l'entrant actif avec une date_entree", async () => {
+    const entrant = await prisma.resident.findUnique({
+      where: { id_resident: res.body.id_resident },
+    });
+    expect(entrant.actif).toBe(true);
+    expect(entrant.date_entree).not.toBeNull();
+  });
+
 });
