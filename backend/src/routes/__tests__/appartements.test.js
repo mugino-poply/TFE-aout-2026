@@ -353,44 +353,6 @@ describe("POST /api/appartements/:numero/changement - sécurité", () => {
   });
 });
 
-describe("POST /api/appartements/:numero/changement - changement réussi", () => {
-  let res;
-
-  beforeAll(async () => {
-    const token = jwt.sign(
-      { userId: 1, role: "secretaire" },
-      process.env.JWT_SECRET,
-      { expiresIn: "11h" }
-    );
-
-    const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
-
-    res = await request(app)
-      .post("/api/appartements/4/changement")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ id_resident_sortant: herve.id_resident, prenom: "Marie", nom: "Dupont" });
-  });
-
-  it("répond 201", () => {
-    expect(res.status).toBe(201);
-  });
-
-  it("renvoie l'entrant minimisé (id_resident, prénom, nom)", () => {
-    expect(res.body).toEqual({
-      id_resident: expect.any(Number),
-      prenom: "Marie",
-      nom: "Dupont",
-    });
-  });
-
-  it("archive le sortant avec une date_sortie", async () => {
-    const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
-
-    expect(herve.actif).toBe(false);
-    expect(herve.date_sortie).not.toBeNull();
-  });
-});
-
 describe("POST /api/appartements/:numero/changement - cas couple (fixture locale)", () => {
   let res;
   let appartId;
@@ -468,5 +430,62 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
     expect(entrant.actif).toBe(true);
     expect(entrant.date_entree).not.toBeNull();
   });
+});
 
+describe("POST /api/appartements/:numero/changement - validation stricte de l'entrant (fixture locale)", () => {
+  let appartId;
+  let sortantTypeId;
+  let sortantBlancId;
+
+  beforeAll(async () => {
+    const appart = await prisma.appartement.create({ data: { numero: 9002 } });
+    appartId = appart.id_appartement;
+
+    const a = await prisma.resident.create({
+      data: { id_appartement: appartId, prenom: "Sortant", nom: "Type", actif: true, date_entree: new Date() },
+    });
+    sortantTypeId = a.id_resident;
+
+    const b = await prisma.resident.create({
+      data: { id_appartement: appartId, prenom: "Sortant", nom: "Blanc", actif: true, date_entree: new Date() },
+    });
+    sortantBlancId = b.id_resident;
+  });
+
+  afterAll(async () => {
+    await prisma.resident.deleteMany({ where: { id_appartement: appartId } });
+    await prisma.appartement.delete({ where: { id_appartement: appartId } });
+  });
+
+  it("rejette un prénom non-string (400)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const res = await request(app)
+      .post("/api/appartements/9002/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: sortantTypeId, prenom: 123, nom: "Dupont" });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Prénom et nom de l'entrant requis" });
+  });
+
+  it("rejette un prénom composé uniquement d'espaces (400)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const res = await request(app)
+      .post("/api/appartements/9002/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: sortantBlancId, prenom: "   ", nom: "Dupont" });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Prénom et nom de l'entrant requis" });
+  });
 });
