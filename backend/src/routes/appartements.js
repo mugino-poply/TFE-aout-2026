@@ -75,7 +75,7 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
     return res.status(400).json({ error: "Identifiant du sortant invalide" });
   }
 
-  if (!prenom || !nom) {
+  if ( typeof prenom !== "string" || prenom.trim() === "" || typeof nom !== "string" || nom.trim() === "") {
     return res.status(400).json({ error: "Prénom et nom de l'entrant requis" });
   }
 
