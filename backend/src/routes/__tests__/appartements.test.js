@@ -327,6 +327,23 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejette un entrant sans prenom (400)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    const francis = await prisma.resident.findFirst({ where: { nom: "De Jonghe" } });
+  
+    const res = await request(app)
+      .post("/api/appartements/7/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: francis.id_resident, nom: "Dupont" });
+  
+    expect(res.status).toBe(400);
+  });
+
 });
 
 describe("POST /api/appartements/:numero/changement - changement reussi", () => {
