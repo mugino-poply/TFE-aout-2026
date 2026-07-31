@@ -375,8 +375,12 @@ describe("POST /api/appartements/:numero/changement - changement réussi", () =>
     expect(res.status).toBe(201);
   });
 
-  it("renvoie le nouvel entrant actif", () => {
-    expect(res.body).toMatchObject({ prenom: "Marie", nom: "Dupont", actif: true });
+  it("renvoie l'entrant minimisé (id_resident, prénom, nom)", () => {
+    expect(res.body).toEqual({
+      id_resident: expect.any(Number),
+      prenom: "Marie",
+      nom: "Dupont",
+    });
   });
 
   it("archive le sortant avec une date_sortie", async () => {
@@ -436,9 +440,13 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
     await prisma.appartement.delete({ where: { id_appartement: appartId } });
   });
 
-  it("répond 201 et renvoie le nouvel entrant actif", () => {
+  it("répond 201 et renvoie l'entrant minimisé", () => {
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ prenom: "Charlie", nom: "Entrant", actif: true });
+    expect(res.body).toEqual({
+      id_resident: expect.any(Number),
+      prenom: "Charlie",
+      nom: "Entrant",
+    });
   });
 
   it("archive le sortant ciblé", async () => {
