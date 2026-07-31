@@ -115,6 +115,11 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
           actif: true,
           date_entree: new Date(),
         },
+        select: {
+          id_resident: true,
+          prenom: true,
+          nom: true,
+        },
       });
     });
 
