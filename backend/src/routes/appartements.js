@@ -66,8 +66,11 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 
 appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), async (req, res) => {
   const numero = Number(req.params.numero);
+  if (!Number.isInteger(numero) || numero <= 0) {
+    return res.status(400).json({ error: "numero d'appartement invalide" });
+  }
+
   const { id_resident_sortant, prenom, nom } = req.body;
- 
   if (!Number.isInteger(id_resident_sortant)) {
     return res.status(400).json({ error: "id_resident_sortant invalide" });
   }
