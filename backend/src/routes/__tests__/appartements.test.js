@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import app from "../../app.js";
@@ -345,5 +345,72 @@ describe("POST /api/appartements/:numero/changement - changement reussi", () => 
   
     expect(herve.actif).toBe(false);
     expect(herve.date_sortie).not.toBeNull();
+  });
+});
+
+describe("POST /api/appartements/:numero/changement - cas couple (fixture locale)", () => {
+  let res;
+  let appartId;
+  let sortantId;
+  let conjointId;
+ 
+  beforeAll(async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+ 
+    const appart = await prisma.appartement.create({ data: { numero: 9001 } });
+    appartId = appart.id_appartement;
+ 
+    const sortant = await prisma.resident.create({
+      data: {
+        id_appartement: appartId,
+        prenom: "Jeanette",
+        nom: "Sortante",
+        actif: true,
+        date_entree: new Date(),
+      },
+    });
+    sortantId = sortant.id_resident;
+ 
+    const conjoint = await prisma.resident.create({
+      data: {
+        id_appartement: appartId,
+        prenom: "Robert",
+        nom: "Conjoint",
+        actif: true,
+        date_entree: new Date(),
+      },
+    });
+    conjointId = conjoint.id_resident;
+ 
+    res = await request(app)
+      .post("/api/appartements/9001/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: sortantId, prenom: "Charlie", nom: "Entrant" });
+  });
+ 
+  afterAll(async () => {
+    await prisma.resident.deleteMany({ where: { id_appartement: appartId } });
+    await prisma.appartement.delete({ where: { id_appartement: appartId } });
+  });
+ 
+  it("repond 201 et renvoie le nouvel entrant actif", () => {
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ prenom: "Charlie", nom: "Entrant", actif: true });
+  });
+ 
+  it("archive le sortant cible", async () => {
+    const sortant = await prisma.resident.findUnique({ where: { id_resident: sortantId } });
+    expect(sortant.actif).toBe(false);
+    expect(sortant.date_sortie).not.toBeNull();
+  });
+ 
+  it("preserve le conjoint survivant", async () => {
+    const conjoint = await prisma.resident.findUnique({ where: { id_resident: conjointId } });
+    expect(conjoint.actif).toBe(true);
+    expect(conjoint.date_sortie).toBeNull();
   });
 });
