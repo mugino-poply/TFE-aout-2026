@@ -312,6 +312,21 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
     expect(res.status).toBe(409);
   });
 
+  it("rejette un numero d'appartement non entier (400)", async () => {
+    const token = jwt.sign(
+      { userId: 1, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  
+    const res = await request(app)
+      .post("/api/appartements/abc/changement")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ id_resident_sortant: 1, prenom: "Marie", nom: "Dupont" });
+  
+    expect(res.status).toBe(400);
+  });
+
 });
 
 describe("POST /api/appartements/:numero/changement - changement reussi", () => {
