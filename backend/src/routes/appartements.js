@@ -67,42 +67,46 @@ appartementsRouter.get("/:numero/residents", async (req, res) => {
 appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), async (req, res) => {
   const numero = Number(req.params.numero);
   if (!Number.isInteger(numero) || numero <= 0) {
-    return res.status(400).json({ error: "numero d'appartement invalide" });
+    return res.status(400).json({ error: "Numéro d'appartement invalide" });
   }
 
   const { id_resident_sortant, prenom, nom } = req.body;
   if (!Number.isInteger(id_resident_sortant)) {
-    return res.status(400).json({ error: "id_resident_sortant invalide" });
+    return res.status(400).json({ error: "Identifiant du sortant invalide" });
   }
- 
+
+  if (!prenom || !nom) {
+    return res.status(400).json({ error: "Prénom et nom de l'entrant requis" });
+  }
+
   try {
     const entrant = await prisma.$transaction(async (tx) => {
       const apparts = await tx.$queryRaw`
         SELECT id_appartement FROM "Appartement" WHERE numero = ${numero} FOR UPDATE
       `;
       if (apparts.length === 0) {
-        throw Object.assign(new Error("appartement introuvable"), { status: 404 });
+        throw Object.assign(new Error("Appartement introuvable"), { status: 404 });
       }
       const appartId = Number(apparts[0].id_appartement);
- 
+
       const sortant = await tx.resident.findUnique({
         where: { id_resident: id_resident_sortant },
       });
       if (sortant === null || sortant.id_appartement !== appartId) {
-        throw Object.assign(new Error("sortant introuvable dans cet appartement"), {
+        throw Object.assign(new Error("Sortant introuvable dans cet appartement"), {
           status: 404,
         });
       }
- 
+
       if (sortant.actif === false) {
-        throw Object.assign(new Error("le sortant est deja inactif"), { status: 409 });
+        throw Object.assign(new Error("Le sortant est déjà inactif"), { status: 409 });
       }
- 
+
       await tx.resident.update({
         where: { id_resident: id_resident_sortant },
         data: { actif: false, date_sortie: new Date() },
       });
- 
+
       return tx.resident.create({
         data: {
           id_appartement: appartId,
@@ -113,13 +117,13 @@ appartementsRouter.post("/:numero/changement", requireRole(["secretaire"]), asyn
         },
       });
     });
- 
+
     return res.status(201).json(entrant);
   } catch (err) {
     if (err.status) {
       return res.status(err.status).json({ error: err.message });
     }
-    return res.status(500).json({ error: "erreur interne" });
+    return res.status(500).json({ error: "Erreur interne" });
   }
 });
 

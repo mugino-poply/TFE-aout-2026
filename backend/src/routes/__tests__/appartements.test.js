@@ -223,28 +223,30 @@ describe("GET /api/appartements/:numero/residents", () => {
   });
 });
 
-describe("POST /api/appartements/:numero/changement - securite", () => {
+describe("POST /api/appartements/:numero/changement - sécurité", () => {
   it("refuse sans token (401)", async () => {
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .send({});
- 
+
     expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: "Token invalide" });
   });
 
-  it("refuse un role non secretaire (403)", async () => {
+  it("refuse un rôle non secrétaire (403)", async () => {
     const tokenCuisine = jwt.sign(
       { userId: 2, role: "cuisine" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
- 
+
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .set("Authorization", `Bearer ${tokenCuisine}`)
       .send({});
- 
+
     expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Accès refusé" });
   });
 
   it("rejette un id_resident_sortant non entier (400)", async () => {
@@ -253,13 +255,14 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
+
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .set("Authorization", `Bearer ${tokenSecretaire}`)
       .send({ id_resident_sortant: "abc", prenom: "Marie", nom: "Dupont" });
-  
+
     expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Identifiant du sortant invalide" });
   });
 
   it("rejette un changement sur un appartement inexistant (404)", async () => {
@@ -268,113 +271,117 @@ describe("POST /api/appartements/:numero/changement - securite", () => {
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
+
     const res = await request(app)
       .post("/api/appartements/999/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: 1, prenom: "Marie", nom: "Dupont" });
-  
+
     expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Appartement introuvable" });
   });
- 
+
   it("rejette un sortant qui habite un autre appartement (404)", async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
-    // Herve Raskin est actif dans l'appart 4 ; on tente de le sortir de l'appart 7
+
+    // Hervé Raskin est actif dans l'appart 4 ; on tente de le sortir de l'appart 7
     const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
-  
+
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: herve.id_resident, prenom: "Marie", nom: "Dupont" });
-  
+
     expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Sortant introuvable dans cet appartement" });
   });
 
-  it("rejette un sortant deja inactif (409)", async () => {
+  it("rejette un sortant déjà inactif (409)", async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
+
     const leopold = await prisma.resident.findFirst({ where: { nom: "Oud" } });
-  
+
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: leopold.id_resident, prenom: "Marie", nom: "Dupont" });
-  
+
     expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: "Le sortant est déjà inactif" });
   });
 
-  it("rejette un numero d'appartement non entier (400)", async () => {
+  it("rejette un numéro d'appartement non entier (400)", async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
+
     const res = await request(app)
       .post("/api/appartements/abc/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: 1, prenom: "Marie", nom: "Dupont" });
-  
+
     expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Numéro d'appartement invalide" });
   });
 
-  it("rejette un entrant sans prenom (400)", async () => {
+  it("rejette un entrant sans prénom (400)", async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
-  
+
     const francis = await prisma.resident.findFirst({ where: { nom: "De Jonghe" } });
-  
+
     const res = await request(app)
       .post("/api/appartements/7/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: francis.id_resident, nom: "Dupont" });
-  
-    expect(res.status).toBe(400);
-  });
 
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Prénom et nom de l'entrant requis" });
+  });
 });
 
-describe("POST /api/appartements/:numero/changement - changement reussi", () => {
+describe("POST /api/appartements/:numero/changement - changement réussi", () => {
   let res;
- 
+
   beforeAll(async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
- 
+
     const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
- 
+
     res = await request(app)
       .post("/api/appartements/4/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: herve.id_resident, prenom: "Marie", nom: "Dupont" });
   });
- 
-  it("repond 201", () => {
+
+  it("répond 201", () => {
     expect(res.status).toBe(201);
   });
- 
+
   it("renvoie le nouvel entrant actif", () => {
     expect(res.body).toMatchObject({ prenom: "Marie", nom: "Dupont", actif: true });
   });
 
   it("archive le sortant avec une date_sortie", async () => {
     const herve = await prisma.resident.findFirst({ where: { nom: "Raskin" } });
-  
+
     expect(herve.actif).toBe(false);
     expect(herve.date_sortie).not.toBeNull();
   });
@@ -385,17 +392,17 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
   let appartId;
   let sortantId;
   let conjointId;
- 
+
   beforeAll(async () => {
     const token = jwt.sign(
       { userId: 1, role: "secretaire" },
       process.env.JWT_SECRET,
       { expiresIn: "11h" }
     );
- 
+
     const appart = await prisma.appartement.create({ data: { numero: 9001 } });
     appartId = appart.id_appartement;
- 
+
     const sortant = await prisma.resident.create({
       data: {
         id_appartement: appartId,
@@ -406,7 +413,7 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
       },
     });
     sortantId = sortant.id_resident;
- 
+
     const conjoint = await prisma.resident.create({
       data: {
         id_appartement: appartId,
@@ -417,30 +424,30 @@ describe("POST /api/appartements/:numero/changement - cas couple (fixture locale
       },
     });
     conjointId = conjoint.id_resident;
- 
+
     res = await request(app)
       .post("/api/appartements/9001/changement")
       .set("Authorization", `Bearer ${token}`)
       .send({ id_resident_sortant: sortantId, prenom: "Charlie", nom: "Entrant" });
   });
- 
+
   afterAll(async () => {
     await prisma.resident.deleteMany({ where: { id_appartement: appartId } });
     await prisma.appartement.delete({ where: { id_appartement: appartId } });
   });
- 
-  it("repond 201 et renvoie le nouvel entrant actif", () => {
+
+  it("répond 201 et renvoie le nouvel entrant actif", () => {
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ prenom: "Charlie", nom: "Entrant", actif: true });
   });
- 
-  it("archive le sortant cible", async () => {
+
+  it("archive le sortant ciblé", async () => {
     const sortant = await prisma.resident.findUnique({ where: { id_resident: sortantId } });
     expect(sortant.actif).toBe(false);
     expect(sortant.date_sortie).not.toBeNull();
   });
- 
-  it("preserve le conjoint survivant", async () => {
+
+  it("préserve le conjoint survivant", async () => {
     const conjoint = await prisma.resident.findUnique({ where: { id_resident: conjointId } });
     expect(conjoint.actif).toBe(true);
     expect(conjoint.date_sortie).toBeNull();
