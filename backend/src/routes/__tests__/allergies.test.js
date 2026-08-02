@@ -334,3 +334,40 @@ describe("GET /api/residents/:id/allergies - 404 résident absent", () => {
     expect(res.body).toEqual({ error: "Résident introuvable" });
   });
 });
+
+describe("GET /api/residents/:id/allergies - résident sans allergie", () => {
+  let idResident;
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    // résident 13 (appart 13, vide au seed), aucune allergie créée
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 13,
+        prenom: "Test",
+        nom: "Vide",
+        date_entree: new Date(),
+      },
+    });
+    idResident = resident.id_resident;
+
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("renvoie une liste vide en 200, pas un 404", async () => {
+    const res = await request(app)
+      .get(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.id_resident).toBe(idResident);
+    expect(res.body.allergies).toEqual([]);
+  });
+});
