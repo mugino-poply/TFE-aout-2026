@@ -140,8 +140,8 @@ describe("POST /api/residents/:id/allergies - 403 rôle", () => {
 
     // token cuisine forgé sur un vrai user cuisine du seed
     // (le connect sur utilisateur exige un id valide, sinon FK -> 500 au lieu de 201)
-    const cuisine = await prisma.utilisateur.findFirst({
-      where: { role: "cuisine" },
+    const cuisine = await prisma.utilisateur.findUnique({
+      where: { login: "cuisine1" },
     });
     tokenCuisine = jwt.sign(
       { userId: cuisine.id_utilisateur, role: "cuisine" },
@@ -166,8 +166,8 @@ describe("POST /api/residents/:id/allergies - 404 résident absent", () => {
   let tokenSecretaire;
 
   beforeAll(async () => {
-    const secretaire = await prisma.utilisateur.findFirst({
-      where: { role: "secretaire" },
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
     });
     tokenSecretaire = jwt.sign(
       { userId: secretaire.id_utilisateur, role: "secretaire" },
@@ -205,8 +205,8 @@ describe("POST /api/residents/:id/allergies - 400 type hors enum", () => {
     });
     idResident = resident.id_resident;
 
-    const secretaire = await prisma.utilisateur.findFirst({
-      where: { role: "secretaire" },
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
     });
     tokenSecretaire = jwt.sign(
       { userId: secretaire.id_utilisateur, role: "secretaire" },

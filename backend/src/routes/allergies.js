@@ -15,7 +15,7 @@ allergiesRouter.use(requireRole(["secretaire", "admin"]));
 allergiesRouter.post("/", async (req, res) => {
   const { libelle, type } = req.body;
 
-    // garde de forme : libelle obligatoire
+    // garde de forme
   if (typeof libelle !== "string" || libelle.trim() === "" || !type) {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
   }
