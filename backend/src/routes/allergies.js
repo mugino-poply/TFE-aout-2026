@@ -1,6 +1,6 @@
 import express from "express";
 import prisma from "../lib/prisma.js";
-import { authenticateToken } from "../middlewares/auth.js";
+import { authenticateToken, requireRole } from "../middlewares/auth.js";
 
 // routeur imbriqué sous /api/residents/:id/allergies
 // mergeParams sinon je perds le req.params.id du résident
@@ -8,6 +8,8 @@ const allergiesRouter = express.Router({ mergeParams: true });
 
 // pas de token = 401 direct ici, pas un 404 random
 allergiesRouter.use(authenticateToken);
+
+allergiesRouter.use(requireRole(["secretaire", "admin"]));
 
 allergiesRouter.post("/", async (req, res) => {
   const { libelle, type } = req.body;
