@@ -90,3 +90,44 @@ describe("POST /api/residents/:id/allergies - 400 forme", () => {
     expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
   });
 });
+
+describe("POST /api/residents/:id/allergies - 403 rôle", () => {
+  let idResident;
+  let tokenCuisine;
+
+  beforeAll(async () => {
+    // fixture sur appart 10 (vide au seed) pour que le body valide crée bien (201)
+    // sinon un résident absent ferait tomber le create en 500 et fausserait le motif
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 10,
+        prenom: "Test",
+        nom: "Role",
+        date_entree: new Date(),
+      },
+    });
+    idResident = resident.id_resident;
+
+    // token cuisine forgé sur un vrai user cuisine du seed
+    // (le connect sur utilisateur exige un id valide, sinon FK -> 500 au lieu de 201)
+    const cuisine = await prisma.utilisateur.findFirst({
+      where: { role: "cuisine" },
+    });
+    tokenCuisine = jwt.sign(
+      { userId: cuisine.id_utilisateur, role: "cuisine" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("refuse la cuisine sur la création d'allergie", async () => {
+    // body volontairement valide : le rouge doit venir du rôle, pas d'un 400 de forme
+    const res = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenCuisine}`)
+      .send({ libelle: "Arachides", type: "allergie" });
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Accès refusé" });
+  });
+});
