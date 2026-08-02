@@ -157,3 +157,41 @@ describe("POST /api/residents/:id/allergies - 404 résident absent", () => {
     expect(res.body).toEqual({ error: "Résident introuvable" });
   });
 });
+
+describe("POST /api/residents/:id/allergies - 400 type hors enum", () => {
+  let idResident;
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    // fixture sur appart 11 (vide au seed) pour un :id valide
+    // le rouge doit venir du type invalide, pas d'un résident absent
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 11,
+        prenom: "Test",
+        nom: "Enum",
+        date_entree: new Date(),
+      },
+    });
+    idResident = resident.id_resident;
+
+    const secretaire = await prisma.utilisateur.findFirst({
+      where: { role: "secretaire" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un type absent de l'enum", async () => {
+    const res = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Arachides", type: "banane" });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Type d'allergie invalide" });
+  });
+});
