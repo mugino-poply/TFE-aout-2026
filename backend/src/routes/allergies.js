@@ -55,4 +55,21 @@ allergiesRouter.post("/", async (req, res) => {
   res.status(201).json(allergie);
 });
 
+allergiesRouter.get("/", async (req, res) => {
+  const idResident = Number(req.params.id);
+
+  const allergies = await prisma.allergie.findMany({
+    where: { id_resident: idResident },
+    select: {
+      id_allergie: true,
+      libelle: true,
+      type: true,
+      notes: true,
+      created_at: true,
+    },
+  });
+
+  res.json({ id_resident: idResident, allergies });
+});
+
 export default allergiesRouter;
