@@ -23,6 +23,10 @@ allergiesRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Type d'allergie invalide" });
   }
 
+  if (notes !== undefined && typeof notes !== "string") {
+    return res.status(400).json({ error: "Notes invalides" });
+  }
+
   const idResident = Number(req.params.id);
   const resident = await prisma.resident.findUnique({
     where: { id_resident: idResident },
