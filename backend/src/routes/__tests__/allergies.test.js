@@ -131,3 +131,29 @@ describe("POST /api/residents/:id/allergies - 403 rôle", () => {
     expect(res.body).toEqual({ error: "Accès refusé" });
   });
 });
+
+describe("POST /api/residents/:id/allergies - 404 résident absent", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findFirst({
+      where: { role: "secretaire" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette une allergie sur un résident inexistant", async () => {
+    // id 999999 bien formé mais absent, body valide : le rouge doit venir de l'existence
+    const res = await request(app)
+      .post("/api/residents/999999/allergies")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Arachides", type: "allergie" });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Résident introuvable" });
+  });
+});
