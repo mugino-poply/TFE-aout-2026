@@ -51,6 +51,21 @@ describe("POST /api/residents/:id/allergies", () => {
     });
     expect(enBase.created_by).toBe(idSecretaire);
   });
+
+  it("persiste le champ notes quand il est fourni", async () => {
+    const res = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Gluten", type: "intolerance", notes: "sauf dans la bière comme par hasard" });
+
+    expect(res.status).toBe(201);
+
+    // je relis en base : c'est la persistance que je prouve, pas l'écho du body
+    const enBase = await prisma.allergie.findUnique({
+      where: { id_allergie: res.body.id_allergie },
+    });
+    expect(enBase.notes).toBe("sauf dans la bière comme par hasard");
+  });
 });
 
 describe("POST /api/residents/:id/allergies - 400 forme", () => {
