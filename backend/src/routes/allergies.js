@@ -58,6 +58,13 @@ allergiesRouter.post("/", async (req, res) => {
 allergiesRouter.get("/", async (req, res) => {
   const idResident = Number(req.params.id);
 
+  const resident = await prisma.resident.findUnique({
+    where: { id_resident: idResident },
+  });
+  if (!resident) {
+    return res.status(404).json({ error: "Résident introuvable" });
+  }
+
   const allergies = await prisma.allergie.findMany({
     where: { id_resident: idResident },
     select: {
