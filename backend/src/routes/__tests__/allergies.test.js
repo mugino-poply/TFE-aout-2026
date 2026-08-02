@@ -251,3 +251,62 @@ describe("POST /api/residents/:id/allergies - 400 type hors enum", () => {
     expect(res.body).toEqual({ error: "Type d'allergie invalide" });
   });
 });
+
+describe("GET /api/residents/:id/allergies", () => {
+  let idResident;
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    // résident 12 (appart 12, vide au seed), disjoint des fixtures POST
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 12,
+        prenom: "Test",
+        nom: "Lecture",
+        date_entree: new Date(),
+      },
+    });
+    idResident = resident.id_resident;
+
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+
+    // deux allergies, notes explicite sur une pour prouver que le GET renvoie notes
+    await prisma.allergie.createMany({
+      data: [
+        { id_resident: idResident, libelle: "Arachides", type: "allergie", notes: "sévère", created_by: secretaire.id_utilisateur },
+        { id_resident: idResident, libelle: "Gluten", type: "intolerance", created_by: secretaire.id_utilisateur },
+      ],
+    });
+
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("renvoie les allergies du résident, enveloppées, sans created_by", async () => {
+    const res = await request(app)
+      .get(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.id_resident).toBe(idResident);
+    expect(Array.isArray(res.body.allergies)).toBe(true);
+    expect(res.body.allergies).toHaveLength(2);
+
+    // forme d'un élément
+    const a = res.body.allergies[0];
+    expect(a).toHaveProperty("libelle");
+    expect(a).toHaveProperty("type");
+    expect(a).toHaveProperty("notes");
+    expect(a).toHaveProperty("created_at");
+
+    // minimisation : created_by dans aucun élément
+    res.body.allergies.forEach((x) => {
+      expect(x).not.toHaveProperty("created_by");
+    });
+  });
+});

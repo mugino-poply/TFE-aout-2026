@@ -14,7 +14,11 @@ allergiesRouter.use(requireRole(["secretaire", "admin"]));
 
 allergiesRouter.post("/", async (req, res) => {
   const { libelle, type, notes } = req.body;
-    // garde de forme
+
+  // chaque champ est validé au niveau où il est vraiment exposé
+  // libelle : durci fort (typeof + trim), c'est sa seule garde, rien derrière le rattrape
+  // type : juste présence ici, l'enum juste en dessous fait le sale boulot par liste blanche
+  // notes : optionnel, donc je le valide seulement s'il est là, sinon un POST sans notes serait recalé à tort
   if (typeof libelle !== "string" || libelle.trim() === "" || !type) {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
   }
