@@ -13,8 +13,7 @@ allergiesRouter.use(authenticateToken);
 allergiesRouter.use(requireRole(["secretaire", "admin"]));
 
 allergiesRouter.post("/", async (req, res) => {
-  const { libelle, type } = req.body;
-
+  const { libelle, type, notes } = req.body;
     // garde de forme
   if (typeof libelle !== "string" || libelle.trim() === "" || !type) {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
@@ -38,6 +37,7 @@ allergiesRouter.post("/", async (req, res) => {
   const allergie = await prisma.allergie.create({
     data: {
       libelle,
+      notes,
       type,
       resident: { connect: { id_resident: idResident } },
       utilisateur: { connect: { id_utilisateur: req.user.userId } },
