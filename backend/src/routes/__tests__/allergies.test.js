@@ -89,6 +89,16 @@ describe("POST /api/residents/:id/allergies - 400 forme", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
   });
+
+  it("rejette un libelle composé uniquement d'espaces", async () => {
+    const res = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "   ", type: "allergie" });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
+  });
 });
 
 describe("POST /api/residents/:id/allergies - 403 rôle", () => {
