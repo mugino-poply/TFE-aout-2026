@@ -19,6 +19,14 @@ allergiesRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
   }
 
+  const idResident = Number(req.params.id);
+  const resident = await prisma.resident.findUnique({
+    where: { id_resident: idResident },
+  });
+  if (!resident) {
+    return res.status(404).json({ error: "Résident introuvable" });
+  }
+
   // created_by passe par le connect sur utilisateur (relation, pas un scalaire direct)
   // req.user.userId vient du token décodé par authenticateToken
   // req.params.id = le résident dans l'URL, dispo grâce au mergeParams
@@ -26,7 +34,7 @@ allergiesRouter.post("/", async (req, res) => {
     data: {
       libelle,
       type,
-      resident: { connect: { id_resident: Number(req.params.id) } },
+      resident: { connect: { id_resident: idResident } },
       utilisateur: { connect: { id_utilisateur: req.user.userId } },
     },
   });
