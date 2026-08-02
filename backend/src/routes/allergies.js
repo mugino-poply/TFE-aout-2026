@@ -4,13 +4,18 @@ import { authenticateToken } from "../middlewares/auth.js";
 
 // routeur imbriqué sous /api/residents/:id/allergies
 // mergeParams sinon je perds le req.params.id du résident
-const router = express.Router({ mergeParams: true });
+const allergiesRouter = express.Router({ mergeParams: true });
 
 // pas de token = 401 direct ici, pas un 404 random
-router.use(authenticateToken);
+allergiesRouter.use(authenticateToken);
 
-router.post("/", async (req, res) => {
+allergiesRouter.post("/", async (req, res) => {
   const { libelle, type } = req.body;
+
+    // garde de forme : libelle obligatoire
+  if (!libelle) {
+    return res.status(400).json({ error: "Champs obligatoires manquants" });
+  }
 
   // created_by passe par le connect sur utilisateur (relation, pas un scalaire direct)
   // req.user.userId vient du token décodé par authenticateToken
@@ -27,4 +32,4 @@ router.post("/", async (req, res) => {
   res.status(201).json(allergie);
 });
 
-export default router;
+export default allergiesRouter;
