@@ -16,7 +16,7 @@ allergiesRouter.post("/", async (req, res) => {
   const { libelle, type } = req.body;
 
     // garde de forme : libelle obligatoire
-  if (typeof libelle !== "string" || libelle.trim() === "") {
+  if (typeof libelle !== "string" || libelle.trim() === "" || !type) {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
   }
 
