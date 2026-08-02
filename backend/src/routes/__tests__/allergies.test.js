@@ -310,3 +310,27 @@ describe("GET /api/residents/:id/allergies", () => {
     });
   });
 });
+
+describe("GET /api/residents/:id/allergies - 404 résident absent", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("retourne 404 quand le résident n'existe pas", async () => {
+    const res = await request(app)
+      .get("/api/residents/999999/allergies")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Résident introuvable" });
+  });
+});
