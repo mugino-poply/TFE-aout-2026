@@ -134,6 +134,17 @@ describe("POST /api/residents/:id/allergies - 400 forme", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
   });
+
+  it("rejette un notes non textuel", async () => {
+    const res = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Arachides", type: "allergie", notes: 123 });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Notes invalides" });
+  });
+
 });
 
 describe("POST /api/residents/:id/allergies - 403 rôle", () => {
