@@ -1,6 +1,7 @@
 import express from "express";
 import prisma from "../lib/prisma.js";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
+import { TypeAllergie } from "@prisma/client";
 
 // routeur imbriqué sous /api/residents/:id/allergies
 // mergeParams sinon je perds le req.params.id du résident
@@ -17,6 +18,10 @@ allergiesRouter.post("/", async (req, res) => {
     // garde de forme : libelle obligatoire
   if (!libelle) {
     return res.status(400).json({ error: "Champs obligatoires manquants" });
+  }
+
+  if (!Object.values(TypeAllergie).includes(type)) {
+    return res.status(400).json({ error: "Type d'allergie invalide" });
   }
 
   const idResident = Number(req.params.id);
