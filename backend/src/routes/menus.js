@@ -10,7 +10,7 @@ menusRouter.post(
   (req, res) => {
     const { date } = req.body;
 
-    if (date === undefined || date === null) {
+    if (date === undefined) {
       return res.status(400).json({ erreur: "Champs obligatoires manquants" });
     }
 
