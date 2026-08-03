@@ -93,4 +93,28 @@ describe("POST /api/menus", () => {
     expect(res.status).toBe(400);
   });
 
+  it("refuse un jour impossible pour le mois (400)", async () => {
+    const res = await request(app)
+        .post("/api/menus")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({
+        date: "2026-02-30",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+        });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("refuse un mois impossible (400)", async () => {
+    const res = await request(app)
+        .post("/api/menus")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({
+        date: "2026-13-01",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+        });
+
+    expect(res.status).toBe(400);
+  });
+
 });
