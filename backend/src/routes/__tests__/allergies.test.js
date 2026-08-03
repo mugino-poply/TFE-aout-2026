@@ -428,3 +428,36 @@ describe("DELETE /api/residents/:id/allergies/:id_allergie", () => {
     expect(enBase).toBeNull();
   });
 });
+
+describe("DELETE /api/residents/:id/allergies/:id_allergie - 400 forme", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un id_resident non entier", async () => {
+    const res = await request(app)
+      .delete("/api/residents/xyz/allergies/1")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
+  });
+
+  it("rejette un id_allergie non entier", async () => {
+    const res = await request(app)
+      .delete("/api/residents/14/allergies/abc")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Identifiant d'allergie invalide" });
+  });
+});
