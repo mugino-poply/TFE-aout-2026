@@ -79,4 +79,14 @@ allergiesRouter.get("/", async (req, res) => {
   res.json({ id_resident: idResident, allergies });
 });
 
+allergiesRouter.delete("/:id_allergie", async (req, res) => {
+  const idAllergie = Number(req.params.id_allergie);
+
+  await prisma.allergie.delete({
+    where: { id_allergie: idAllergie },
+  });
+
+  res.sendStatus(204);
+});
+
 export default allergiesRouter;
