@@ -81,4 +81,16 @@ describe("POST /api/menus", () => {
     expect(res.status).toBe(400);
   });
 
+  it("refuse une date au format non ISO (400)", async () => {
+    const res = await request(app)
+        .post("/api/menus")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({
+        date: "10/08/2026",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+        });
+
+    expect(res.status).toBe(400);
+  });
+
 });
