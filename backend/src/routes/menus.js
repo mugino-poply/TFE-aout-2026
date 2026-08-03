@@ -18,6 +18,10 @@ menusRouter.post(
       return res.status(400).json({ erreur: "Date invalide" });
     }
 
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ erreur: "Date invalide" });
+    }
+
     return res.sendStatus(501);
   }
 );
