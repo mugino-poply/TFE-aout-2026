@@ -80,7 +80,15 @@ allergiesRouter.get("/", async (req, res) => {
 });
 
 allergiesRouter.delete("/:id_allergie", async (req, res) => {
+  const idResident = Number(req.params.id);
   const idAllergie = Number(req.params.id_allergie);
+
+  if (!Number.isInteger(idResident)) {
+    return res.status(400).json({ error: "Identifiant de résident invalide" });
+  }
+  if (!Number.isInteger(idAllergie)) {
+    return res.status(400).json({ error: "Identifiant d'allergie invalide" });
+  }
 
   await prisma.allergie.delete({
     where: { id_allergie: idAllergie },
