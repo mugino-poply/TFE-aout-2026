@@ -14,6 +14,10 @@ menusRouter.post(
       return res.status(400).json({ erreur: "Champs obligatoires manquants" });
     }
 
+    if (typeof date !== "string") {
+      return res.status(400).json({ erreur: "Date invalide" });
+    }
+
     return res.sendStatus(501);
   }
 );

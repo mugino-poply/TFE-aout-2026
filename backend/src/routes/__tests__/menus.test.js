@@ -57,7 +57,7 @@ describe("POST /api/menus", () => {
     expect(res.status).toBe(400);
   });
 
-  it("refuse une date qui n'est pas une chaîne (400)", async () => {
+  it("refuse une date numérique (400)", async () => {
     const res = await request(app)
         .post("/api/menus")
         .set("Authorization", `Bearer ${tokenSecretaire}`)
@@ -68,5 +68,4 @@ describe("POST /api/menus", () => {
 
     expect(res.status).toBe(400);
   });
-
 });
