@@ -68,4 +68,17 @@ describe("POST /api/menus", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("refuse une date au mauvais format (400)", async () => {
+    const res = await request(app)
+        .post("/api/menus")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({
+        date: "hello",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+        });
+
+    expect(res.status).toBe(400);
+  });
+
 });
