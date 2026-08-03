@@ -90,6 +90,18 @@ allergiesRouter.delete("/:id_allergie", async (req, res) => {
     return res.status(400).json({ error: "Identifiant d'allergie invalide" });
   }
 
+const allergie = await prisma.allergie.findUnique({
+    where: { id_allergie: idAllergie },
+    select: { id_resident: true },
+  });
+
+  // existence et appartenance donnent le même "introuvable" : du point de vue de l'URL,
+  // absente ou rattachée à un autre résident, c'est pareil, elle est pas dans cette collection
+  // (anti-énumération : je révèle pas qu'elle existe ailleurs, même logique que le 403)
+  if (allergie === null || allergie.id_resident !== idResident) {
+    return res.status(404).json({ error: "Allergie introuvable" });
+  }
+
   await prisma.allergie.delete({
     where: { id_allergie: idAllergie },
   });
