@@ -79,6 +79,12 @@ allergiesRouter.get("/", async (req, res) => {
   res.json({ id_resident: idResident, allergies });
 });
 
+
+// ownership volontairement pas implémentée : le requireRole global limite déjà le DELETE
+// à secrétaire/admin, qui sont justement les rôles superviseurs qui la bypasseraient.
+// aucun rôle réel ne peut la déclencher aujourd'hui, donc pas de code spéculatif.
+// elle deviendra active (avec son cycle red/green) le jour où la création d'allergie
+// s'ouvre à un rôle non superviseur
 allergiesRouter.delete("/:id_allergie", async (req, res) => {
   const idResident = Number(req.params.id);
   const idAllergie = Number(req.params.id_allergie);
