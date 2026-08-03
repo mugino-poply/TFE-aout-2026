@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { parseISO, isValid } from "date-fns";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
 
 const menusRouter = Router();
@@ -19,6 +20,10 @@ menusRouter.post(
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ erreur: "Date invalide" });
+    }
+
+    if (!isValid(parseISO(date))) {
       return res.status(400).json({ erreur: "Date invalide" });
     }
 
