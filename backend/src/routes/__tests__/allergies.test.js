@@ -461,3 +461,62 @@ describe("DELETE /api/residents/:id/allergies/:id_allergie - 400 forme", () => {
     expect(res.body).toEqual({ error: "Identifiant d'allergie invalide" });
   });
 });
+
+describe("DELETE /api/residents/:id/allergies/:id_allergie - 404 existence et appartenance", () => {
+  let idResident15;
+  let idResident16;
+  let idAllergieDe15;
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+
+    const r15 = await prisma.resident.create({
+      data: { id_appartement: 15, prenom: "Test", nom: "Proprio", date_entree: new Date() },
+    });
+    idResident15 = r15.id_resident;
+
+    const r16 = await prisma.resident.create({
+      data: { id_appartement: 16, prenom: "Test", nom: "Autre", date_entree: new Date() },
+    });
+    idResident16 = r16.id_resident;
+
+    // allergie appartenant à 15
+    const allergie = await prisma.allergie.create({
+      data: {
+        libelle: "Arachides",
+        type: "allergie",
+        resident: { connect: { id_resident: idResident15 } },
+        utilisateur: { connect: { id_utilisateur: secretaire.id_utilisateur } },
+      },
+    });
+    idAllergieDe15 = allergie.id_allergie;
+
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("retourne 404 quand l'allergie n'existe pas", async () => {
+    const res = await request(app)
+      .delete(`/api/residents/${idResident15}/allergies/999999`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Allergie introuvable" });
+  });
+
+  it("retourne 404 quand l'allergie appartient à un autre résident", async () => {
+    // allergie de 15 ciblée via l'URL de 16
+    const res = await request(app)
+      .delete(`/api/residents/${idResident16}/allergies/${idAllergieDe15}`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Allergie introuvable" });
+  });
+});
