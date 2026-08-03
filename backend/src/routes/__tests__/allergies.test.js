@@ -371,3 +371,60 @@ describe("GET /api/residents/:id/allergies - résident sans allergie", () => {
     expect(res.body.allergies).toEqual([]);
   });
 });
+
+describe("DELETE /api/residents/:id/allergies/:id_allergie", () => {
+  let idResident;
+  let idAllergie;
+  let tokenSecretaire;
+ 
+  beforeAll(async () => {
+    // résident 14 (appart 14, vide au seed), disjoint des autres fixtures
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 14,
+        prenom: "Test",
+        nom: "Suppression",
+        date_entree: new Date(),
+      },
+    });
+    idResident = resident.id_resident;
+ 
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+ 
+    // create simple (pas createMany) pour récupérer l'id_allergie qui va dans l'URL du DELETE
+    // created_by est NOT NULL, donc connect utilisateur obligatoire ici, pas de scalaire en create simple
+    const allergie = await prisma.allergie.create({
+      data: {
+        libelle: "Arachides",
+        type: "allergie",
+        resident: { connect: { id_resident: idResident } },
+        utilisateur: { connect: { id_utilisateur: secretaire.id_utilisateur } },
+      },
+    });
+    idAllergie = allergie.id_allergie;
+ 
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+ 
+  it("supprime l'allergie et renvoie 204 sans body", async () => {
+    const res = await request(app)
+      .delete(`/api/residents/${idResident}/allergies/${idAllergie}`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+ 
+    expect(res.status).toBe(204);
+    expect(res.body).toEqual({});
+ 
+    // je relis en base : c'est la suppression que je prouve, pas le code de statut
+    // hard delete, la ligne doit avoir disparu (art. 17, effacement réel d'une donnée de santé)
+    const enBase = await prisma.allergie.findUnique({
+      where: { id_allergie: idAllergie },
+    });
+    expect(enBase).toBeNull();
+  });
+});
