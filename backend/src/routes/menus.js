@@ -7,7 +7,15 @@ menusRouter.post(
   "/",
   authenticateToken,
   requireRole(["secretaire", "cuisine"]),
-  (req, res) => res.sendStatus(501)
+  (req, res) => {
+    const { date } = req.body;
+
+    if (date === undefined || date === null) {
+      return res.status(400).json({ erreur: "Champs obligatoires manquants" });
+    }
+
+    return res.sendStatus(501);
+  }
 );
 
 export default menusRouter;
