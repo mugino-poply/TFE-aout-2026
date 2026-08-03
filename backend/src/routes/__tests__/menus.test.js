@@ -117,4 +117,16 @@ describe("POST /api/menus", () => {
     expect(res.status).toBe(400);
   });
 
+  it("refuse un datetime ISO complet, pas au format date pur (400)", async () => {
+    const res = await request(app)
+        .post("/api/menus")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({
+        date: "2026-08-10T00:00:00Z",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+        });
+
+    expect(res.status).toBe(400);
+  });
+
 });
