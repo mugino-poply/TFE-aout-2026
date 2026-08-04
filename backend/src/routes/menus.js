@@ -39,6 +39,10 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ error: "Au moins une option est requise" });
     }
 
+    if (options.some((o) => typeof o !== "object" || o === null)) {
+      return res.status(400).json({ error: "Option invalide" });
+    }
+
     if (options.some((o) => typeof o.libelle !== "string" || o.libelle.trim() === "")) {
       return res.status(400).json({ error: "Libellé d'option invalide" });
     }
