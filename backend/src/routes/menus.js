@@ -9,29 +9,29 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
     const { date, options } = req.body;
 
     if (date === undefined) {
-      return res.status(400).json({ erreur: "Champs obligatoires manquants" });
+      return res.status(400).json({ error: "Champs obligatoires manquants" });
     }
 
     if (options === undefined) {
-      return res.status(400).json({ erreur: "Champs obligatoires manquants" });
+      return res.status(400).json({ error: "Champs obligatoires manquants" });
     }
 
     if (typeof date !== "string") {
-      return res.status(400).json({ erreur: "Date invalide" });
+      return res.status(400).json({ error: "Date invalide" });
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ erreur: "Date invalide" });
+      return res.status(400).json({ error: "Date invalide" });
     }
 
     const dateObj = parseISO(date);
 
     if (!isValid(dateObj)) {
-      return res.status(400).json({ erreur: "Date invalide" });
+      return res.status(400).json({ error: "Date invalide" });
     }
 
     if (!Array.isArray(options)) {
-      return res.status(400).json({ erreur: "Format des options invalide" });
+      return res.status(400).json({ error: "Format des options invalide" });
     }
 
     if (options.length === 0) {
