@@ -2,6 +2,7 @@ import { Router } from "express";
 import { parseISO, isValid, getISOWeek, getISOWeekYear } from "date-fns";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
 import prisma from "../lib/prisma.js";
+import { CategorieOption } from "@prisma/client";
 
 const menusRouter = Router();
 
@@ -40,6 +41,10 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
 
     if (options.some((o) => typeof o.libelle !== "string" || o.libelle.trim() === "")) {
       return res.status(400).json({ error: "Libellé d'option invalide" });
+    }
+
+    if (options.some((o) => !Object.values(CategorieOption).includes(o.categorie))) {
+      return res.status(400).json({ error: "Catégorie d'option invalide" });
     }
 
     const menu = await prisma.menu.create({
