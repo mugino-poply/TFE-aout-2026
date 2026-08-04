@@ -38,6 +38,10 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ error: "Au moins une option est requise" });
     }
 
+    if (options.some((o) => typeof o.libelle !== "string")) {
+      return res.status(400).json({ error: "Libellé d'option invalide" });
+    }
+
     const menu = await prisma.menu.create({
       data: {
         date_menu: dateObj,
