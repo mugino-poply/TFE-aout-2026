@@ -1,15 +1,12 @@
 import { Router } from "express";
-import { parseISO, isValid } from "date-fns";
+import { parseISO, isValid, getISOWeek, getISOWeekYear } from "date-fns";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
+import prisma from "../lib/prisma.js";
 
 const menusRouter = Router();
 
-menusRouter.post(
-  "/",
-  authenticateToken,
-  requireRole(["secretaire", "cuisine"]),
-  (req, res) => {
-    const { date } = req.body;
+menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]), async (req, res) => {
+    const { date, options } = req.body;
 
     if (date === undefined) {
       return res.status(400).json({ erreur: "Champs obligatoires manquants" });
@@ -23,11 +20,34 @@ menusRouter.post(
       return res.status(400).json({ erreur: "Date invalide" });
     }
 
-    if (!isValid(parseISO(date))) {
+    const dateObj = parseISO(date);
+
+    if (!isValid(dateObj)) {
       return res.status(400).json({ erreur: "Date invalide" });
     }
 
-    return res.sendStatus(501);
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: dateObj,
+        semaine: getISOWeek(dateObj),
+        annee: getISOWeekYear(dateObj),
+        options: {
+          create: options.map((o) => ({
+            libelle: o.libelle,
+            categorie: o.categorie,
+          })),
+        },
+      },
+      select: {
+        id_menu: true,
+        options: {
+          select: { id_option: true, libelle: true, categorie: true },
+          orderBy: { id_option: "asc" },
+        },
+      },
+    });
+
+    return res.status(201).json(menu);
   }
 );
 
