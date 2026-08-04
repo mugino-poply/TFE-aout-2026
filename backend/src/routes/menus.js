@@ -47,29 +47,36 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ error: "Catégorie d'option invalide" });
     }
 
-    const menu = await prisma.menu.create({
-      data: {
-        date_menu: dateObj,
-        semaine: getISOWeek(dateObj),
-        annee: getISOWeekYear(dateObj),
-        options: {
-          create: options.map((o) => ({
-            libelle: o.libelle,
-            categorie: o.categorie,
-          })),
+    try {
+      const menu = await prisma.menu.create({
+        data: {
+          date_menu: dateObj,
+          semaine: getISOWeek(dateObj),
+          annee: getISOWeekYear(dateObj),
+          options: {
+            create: options.map((o) => ({
+              libelle: o.libelle,
+              categorie: o.categorie,
+            })),
+          },
         },
-      },
-      select: {
-        id_menu: true,
-        options: {
-          select: { id_option: true, libelle: true, categorie: true },
-          orderBy: { id_option: "asc" },
+        select: {
+          id_menu: true,
+          options: {
+            select: { id_option: true, libelle: true, categorie: true },
+            orderBy: { id_option: "asc" },
+          },
         },
-      },
-    });
+      });
 
-    return res.status(201).json(menu);
-  }
-);
+      return res.status(201).json(menu);
+    } catch (e) {
+      if (e.code === "P2002") {
+        return res.status(409).json({ error: "Un menu existe déjà pour cette date" });
+      }
+      console.error("Erreur création menu:", e);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+});
 
 export default menusRouter;
