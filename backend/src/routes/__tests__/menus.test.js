@@ -130,3 +130,46 @@ describe("POST /api/menus", () => {
   });
 
 });
+
+describe("POST /api/menus - cas passant", () => {
+  let res;
+  let menuEnBase;
+
+  beforeAll(async () => {
+    res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2027-01-01",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          { libelle: "Blanquette de veau", categorie: "plat" },
+        ],
+      });
+
+    if (res.body?.id_menu) {
+      menuEnBase = await prisma.menu.findUnique({
+        where: { id_menu: res.body.id_menu },
+      });
+    }
+  });
+
+  it("répond 201", () => {
+    expect(res.status).toBe(201);
+  });
+
+  it("renvoie le menu minimisé (id_menu, options projetées)", () => {
+    expect(res.body).toEqual({
+      id_menu: expect.any(Number),
+      options: [
+        { id_option: expect.any(Number), libelle: "Potage du jour", categorie: "soupe" },
+        { id_option: expect.any(Number), libelle: "Blanquette de veau", categorie: "plat" },
+      ],
+    });
+  });
+
+  it("dérive semaine et année ISO en base (paire cohérente à la frontière)", () => {
+    expect(menuEnBase.semaine).toBe(53);
+    expect(menuEnBase.annee).toBe(2026);
+  });
+});
