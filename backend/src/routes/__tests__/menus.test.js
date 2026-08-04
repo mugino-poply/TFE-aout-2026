@@ -225,6 +225,22 @@ describe("POST /api/menus", () => {
     expect(res.body).toEqual({ error: "Catégorie d'option invalide" });
   });
 
+  it("refuse une option sans catégorie (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-17",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          { libelle: "Salade verte" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Catégorie d'option invalide" });
+  });
+
 });
 
 describe("POST /api/menus - cas passant", () => {
