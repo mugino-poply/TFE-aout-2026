@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { parseISO } from "date-fns";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import app from "../../app.js";
@@ -283,5 +284,37 @@ describe("POST /api/menus - cas passant", () => {
   it("dérive semaine et année ISO en base (paire cohérente à la frontière)", () => {
     expect(menuEnBase.semaine).toBe(53);
     expect(menuEnBase.annee).toBe(2026);
+  });
+});
+
+describe("POST /api/menus - unicité", () => {
+  const DATE_DOUBLON = "2026-09-01";
+  let menuFixture;
+
+  beforeAll(async () => {
+    menuFixture = await prisma.menu.create({
+      data: {
+        date_menu: parseISO(DATE_DOUBLON),
+        semaine: 36,
+        annee: 2026,
+      },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.menu.delete({ where: { id_menu: menuFixture.id_menu } });
+  });
+
+  it("refuse un menu à une date déjà existante (409)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: DATE_DOUBLON,
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: "Un menu existe déjà pour cette date" });
   });
 });
