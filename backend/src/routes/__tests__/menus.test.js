@@ -317,6 +317,22 @@ describe("POST /api/menus - cas passant", () => {
     expect(menuEnBase.semaine).toBe(53);
     expect(menuEnBase.annee).toBe(2026);
   });
+
+  it("stocke la date à minuit UTC, sans décalage de fuseau (201)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-19",
+        options: [{ libelle: "Potage du jour", categorie: "soupe" }],
+      });
+
+    const menuEnBase = await prisma.menu.findUnique({
+      where: { id_menu: res.body.id_menu },
+    });
+
+    expect(menuEnBase.date_menu.toISOString()).toBe("2026-08-19T00:00:00.000Z");
+  });
 });
 
 describe("POST /api/menus - unicité", () => {
