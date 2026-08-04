@@ -12,6 +12,10 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ erreur: "Champs obligatoires manquants" });
     }
 
+    if (options === undefined) {
+      return res.status(400).json({ erreur: "Champs obligatoires manquants" });
+    }
+
     if (typeof date !== "string") {
       return res.status(400).json({ erreur: "Date invalide" });
     }
