@@ -174,6 +174,7 @@ describe("POST /api/menus", () => {
       });
 
     expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Au moins une option est requise" });
   });
 
 });
