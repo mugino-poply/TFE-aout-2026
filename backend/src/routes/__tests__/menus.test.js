@@ -129,6 +129,17 @@ describe("POST /api/menus", () => {
     expect(res.status).toBe(400);
   });
 
+  it("refuse un POST sans options (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-11",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
 });
 
 describe("POST /api/menus - cas passant", () => {
