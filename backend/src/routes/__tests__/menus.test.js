@@ -209,6 +209,22 @@ describe("POST /api/menus", () => {
     expect(res.body).toEqual({ error: "Libellé d'option invalide" });
   });
 
+  it("refuse une option dont la catégorie est hors enum (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-16",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          { libelle: "Donut sucré au sucre", categorie: "dessert_mauvais" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Catégorie d'option invalide" });
+  });
+
 });
 
 describe("POST /api/menus - cas passant", () => {
