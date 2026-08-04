@@ -242,6 +242,38 @@ describe("POST /api/menus", () => {
     expect(res.body).toEqual({ error: "Catégorie d'option invalide" });
   });
 
+  it("refuse une option null dans le tableau (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-19",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          null,
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Option invalide" });
+  });
+
+  it("refuse une option non-objet dans le tableau (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-20",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          "hello",
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Option invalide" });
+  });
+
 });
 
 describe("POST /api/menus - cas passant", () => {
