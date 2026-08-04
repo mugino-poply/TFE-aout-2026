@@ -24,6 +24,10 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ erreur: "Date invalide" });
     }
 
+    if (!Array.isArray(options)) {
+      return res.status(400).json({ erreur: "Format des options invalide" });
+    }
+
     const dateObj = parseISO(date);
 
     if (!isValid(dateObj)) {
