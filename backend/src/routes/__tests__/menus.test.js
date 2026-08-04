@@ -177,6 +177,22 @@ describe("POST /api/menus", () => {
     expect(res.body).toEqual({ error: "Au moins une option est requise" });
   });
 
+  it("refuse une option dont le libellé n'est pas une chaîne (400)", async () => {
+    const res = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: "2026-08-14",
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          { libelle: 123, categorie: "plat" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Libellé d'option invalide" });
+  });
+
 });
 
 describe("POST /api/menus - cas passant", () => {
