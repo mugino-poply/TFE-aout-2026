@@ -342,7 +342,7 @@ describe("POST /api/menus - unicité", () => {
   beforeAll(async () => {
     menuFixture = await prisma.menu.create({
       data: {
-        date_menu: parseISO(DATE_DOUBLON),
+        date_menu: parseISO(DATE_DOUBLON + "T00:00:00Z"),
         semaine: 36,
         annee: 2026,
       },

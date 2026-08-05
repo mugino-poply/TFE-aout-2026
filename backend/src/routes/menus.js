@@ -25,7 +25,7 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
       return res.status(400).json({ error: "Date invalide" });
     }
 
-    const dateObj = parseISO(date);
+    const dateObj = parseISO(date + "T00:00:00Z");
 
     if (!isValid(dateObj)) {
       return res.status(400).json({ error: "Date invalide" });
