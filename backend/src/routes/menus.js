@@ -84,7 +84,13 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
 });
 
 menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "serveur"]), (req, res) => {
-  res.sendStatus(501)
-});
+  const { date } = req.query;
+
+  if (date === undefined) {
+    return res.status(400).json({ error: "Date requise" });
+  }
+
+  return res.sendStatus(501);
+  });
 
 export default menusRouter;
