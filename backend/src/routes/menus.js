@@ -90,6 +90,10 @@ menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "s
     return res.status(400).json({ error: "Date requise" });
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: "Date invalide" });
+  }
+
   return res.sendStatus(501);
 });
 
