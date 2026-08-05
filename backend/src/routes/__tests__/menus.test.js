@@ -438,3 +438,44 @@ it("refuse un paramètre date mal formé (400)", async () => {
     expect(res.body).toEqual({ error: "Aucun menu pour cette date" });
   });
 });
+
+describe("GET /api/menus - cas passant", () => {
+  const DATE_MENU = "2026-11-03";
+  let idMenu;
+
+  beforeAll(async () => {
+    const creation = await request(app)
+      .post("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({
+        date: DATE_MENU,
+        options: [
+          { libelle: "Potage du jour", categorie: "soupe" },
+          { libelle: "Blanquette de veau", categorie: "plat" },
+        ],
+      });
+    idMenu = creation.body.id_menu;
+  });
+
+  afterAll(async () => {
+    if (idMenu) {
+      await prisma.optionMenu.deleteMany({ where: { id_menu: idMenu } });
+      await prisma.menu.delete({ where: { id_menu: idMenu } });
+    }
+  });
+
+  it("renvoie 200 et le menu projeté pour une date existante", async () => {
+    const res = await request(app)
+      .get(`/api/menus?date=${DATE_MENU}`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      id_menu: expect.any(Number),
+      options: [
+        { id_option: expect.any(Number), libelle: "Potage du jour", categorie: "soupe" },
+        { id_option: expect.any(Number), libelle: "Blanquette de veau", categorie: "plat" },
+      ],
+    });
+  });
+});
