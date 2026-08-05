@@ -110,7 +110,7 @@ menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "s
     return res.status(404).json({ error: "Aucun menu pour cette date" });
   }
 
-  return res.sendStatus(501);
+  return res.status(200).json(menu);
 });
 
 export default menusRouter;
