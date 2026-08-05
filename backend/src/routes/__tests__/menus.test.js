@@ -392,4 +392,22 @@ describe("GET /api/menus", () => {
     expect(res.body).toEqual({ error: "Date requise" });
   });
 
+  it("refuse un paramètre date vide (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date invalide" });
+  });
+
+it("refuse un paramètre date mal formé (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=hello")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date invalide" });
+  });
+
 });
