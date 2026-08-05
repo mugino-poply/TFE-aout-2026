@@ -382,4 +382,13 @@ describe("GET /api/menus", () => {
 
     expect(res.status).toBe(403);
   });
+
+  it("refuse un GET sans paramètre date (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date requise" });
+  });
 });
