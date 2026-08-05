@@ -7,6 +7,7 @@ import prisma from "../../lib/prisma.js";
 
 let tokenServeur;
 let tokenSecretaire;
+let tokenAdmin;
 
 beforeAll(async () => {
   const serveur = await prisma.utilisateur.findUnique({ where: { login: "serveur1" } });
@@ -18,6 +19,12 @@ beforeAll(async () => {
   const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
   tokenSecretaire = jwt.sign(
     { userId: secretaire.id_utilisateur, role: secretaire.role },
+    process.env.JWT_SECRET
+  );
+
+  const admin = await prisma.utilisateur.findUnique({ where: { login: "admin1" } });
+  tokenAdmin = jwt.sign(
+    { userId: admin.id_utilisateur, role: admin.role },
     process.env.JWT_SECRET
   );
 });
@@ -364,5 +371,15 @@ describe("POST /api/menus - unicité", () => {
 
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: "Un menu existe déjà pour cette date" });
+  });
+});
+
+describe("GET /api/menus", () => {
+  it("refuse un rôle sans droit de lecture menu (403)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=2026-08-19")
+      .set("Authorization", `Bearer ${tokenAdmin}`);
+
+    expect(res.status).toBe(403);
   });
 });
