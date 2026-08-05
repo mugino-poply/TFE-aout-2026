@@ -7,6 +7,7 @@ import prisma from "../../lib/prisma.js";
 
 let tokenServeur;
 let tokenSecretaire;
+let tokenCuisine;
 let tokenAdmin;
 
 beforeAll(async () => {
@@ -19,6 +20,12 @@ beforeAll(async () => {
   const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
   tokenSecretaire = jwt.sign(
     { userId: secretaire.id_utilisateur, role: secretaire.role },
+    process.env.JWT_SECRET
+  );
+
+  const cuisine = await prisma.utilisateur.findUnique({ where: { login: "cuisine1" } });
+  tokenCuisine = jwt.sign(
+    { userId: cuisine.id_utilisateur, role: cuisine.role },
     process.env.JWT_SECRET
   );
 
@@ -477,5 +484,21 @@ describe("GET /api/menus - cas passant", () => {
         { id_option: expect.any(Number), libelle: "Blanquette de veau", categorie: "plat" },
       ],
     });
+  });
+
+  it("est accessible à la cuisine (200)", async () => {
+    const res = await request(app)
+      .get(`/api/menus?date=${DATE_MENU}`)
+      .set("Authorization", `Bearer ${tokenCuisine}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("est accessible au serveur (200)", async () => {
+    const res = await request(app)
+      .get(`/api/menus?date=${DATE_MENU}`)
+      .set("Authorization", `Bearer ${tokenServeur}`);
+
+    expect(res.status).toBe(200);
   });
 });
