@@ -5,6 +5,13 @@ import prisma from "../lib/prisma.js";
 import { CategorieOption } from "@prisma/client";
 
 const menusRouter = Router();
+const menuSelect = {
+  id_menu: true,
+  options: {
+    select: { id_option: true, libelle: true, categorie: true },
+    orderBy: { id_option: "asc" },
+  },
+};
 
 menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]), async (req, res) => {
     const { date, options } = req.body;
@@ -64,13 +71,7 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
             })),
           },
         },
-        select: {
-          id_menu: true,
-          options: {
-            select: { id_option: true, libelle: true, categorie: true },
-            orderBy: { id_option: "asc" },
-          },
-        },
+        select: menuSelect
       });
 
       return res.status(201).json(menu);
@@ -83,7 +84,7 @@ menusRouter.post("/", authenticateToken, requireRole(["secretaire", "cuisine"]),
     }
 });
 
-menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "serveur"]), (req, res) => {
+menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "serveur"]), async (req, res) => {
   const { date } = req.query;
 
   if (date === undefined) {
@@ -98,6 +99,15 @@ menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "s
 
   if (!isValid(dateObj)) {
     return res.status(400).json({ error: "Date invalide" });
+  }
+
+  const menu = await prisma.menu.findUnique({
+    where: { date_menu: dateObj },
+    select: menuSelect,
+  });
+
+  if (menu === null) {
+    return res.status(404).json({ error: "Aucun menu pour cette date" });
   }
 
   return res.sendStatus(501);

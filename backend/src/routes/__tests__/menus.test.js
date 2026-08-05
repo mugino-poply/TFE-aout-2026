@@ -428,4 +428,13 @@ it("refuse un paramètre date mal formé (400)", async () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Date invalide" });
   });
+
+  it("renvoie 404 pour une date valide sans menu (404)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=2026-10-15")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Aucun menu pour cette date" });
+  });
 });
