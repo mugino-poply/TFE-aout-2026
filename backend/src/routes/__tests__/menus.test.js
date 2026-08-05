@@ -410,4 +410,22 @@ it("refuse un paramètre date mal formé (400)", async () => {
     expect(res.body).toEqual({ error: "Date invalide" });
   });
 
+
+  it("refuse un jour impossible pour le mois (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=2026-02-30")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date invalide" });
+  });
+
+  it("refuse un mois impossible (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=2026-13-01")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date invalide" });
+  });
 });
