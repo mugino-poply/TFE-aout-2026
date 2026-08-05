@@ -391,4 +391,13 @@ describe("GET /api/menus", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Date requise" });
   });
+
+  it("refuse un paramètre date en tableau (clé répétée) (400)", async () => {
+    const res = await request(app)
+      .get("/api/menus?date=2026-08-19&date=2026-08-19")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Date invalide" });
+  });
 });

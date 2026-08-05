@@ -91,6 +91,6 @@ menusRouter.get("/", authenticateToken, requireRole(["secretaire", "cuisine", "s
   }
 
   return res.sendStatus(501);
-  });
+});
 
 export default menusRouter;
