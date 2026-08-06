@@ -26,6 +26,10 @@ commandesRouter.post("/", (req, res) => {
         return res.status(400).json({ error: "Lignes invalides" });
     }
 
+    if (lignes.length === 0) {
+        return res.status(400).json({ error: "Lignes vides" });
+    }
+
     res.sendStatus(501)
 });
 
