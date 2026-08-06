@@ -6,6 +6,7 @@ import appartementsRouter from "./routes/appartements.js";
 import residentsRouter from "./routes/residents.js";
 import allergiesRouter from "./routes/allergies.js";
 import menusRouter from "./routes/menus.js";
+import commandesRouter from "./routes/commandes.js";
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.use("/api/appartements", appartementsRouter);
 app.use("/api/residents", residentsRouter);
 app.use("/api/residents/:id/allergies", allergiesRouter);
 app.use("/api/menus", menusRouter);
+app.use("/api/commandes", commandesRouter);
 
 export default app;
