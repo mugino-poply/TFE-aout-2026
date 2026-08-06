@@ -72,14 +72,14 @@ describe("POST /api/commandes - 400 type_client hors enum", () => {
     );
   });
 
-  it("rejette un type_client absent de l'enum", async () => {
+    it("rejette un type_client absent de l'enum", async () => {
     const res = await request(app)
-      .post("/api/commandes")
-      .set("Authorization", `Bearer ${tokenSecretaire}`)
-      .send({ type_client: "relou" });
+        .post("/api/commandes")
+        .set("Authorization", `Bearer ${tokenSecretaire}`)
+        .send({ id_resident: 1, type_repas: "diner", lignes: [1], type_client: "relou" });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Type de client invalide" });
-  });
+    });
 });
 
