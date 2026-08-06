@@ -56,6 +56,26 @@ describe("POST /api/commandes - 400 champ requis manquant", () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
   });
+
+  it("rejette une commande sans type_repas (né-vert, déjà couvert par la garde combinée)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 1, lignes: [1] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
+  });
+
+  it("rejette une commande sans lignes (né-vert, déjà couvert par la garde combinée)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 1, type_repas: "diner" });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
+  });
 });
 
 describe("POST /api/commandes - 400 type_client hors enum", () => {
