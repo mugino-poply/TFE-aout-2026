@@ -33,6 +33,31 @@ describe("POST /api/commandes - auth (né-vert via montage)", () => {
   });
 });
 
+describe("POST /api/commandes - 400 champ requis manquant", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette une commande sans id_resident", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ type_repas: "diner", lignes: [1, 2] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Champs obligatoires manquants" });
+  });
+});
+
 describe("POST /api/commandes - 400 type_client hors enum", () => {
   let tokenSecretaire;
 
