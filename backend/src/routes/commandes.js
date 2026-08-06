@@ -22,6 +22,10 @@ commandesRouter.post("/", (req, res) => {
         return res.status(400).json({ error: "Type de repas invalide" });
     }
 
+    if (!Array.isArray(lignes)) {
+        return res.status(400).json({ error: "Lignes invalides" });
+    }
+
     res.sendStatus(501)
 });
 
