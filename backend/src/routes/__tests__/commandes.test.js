@@ -103,3 +103,27 @@ describe("POST /api/commandes - 400 type_client hors enum", () => {
     });
 });
 
+describe("POST /api/commandes - 400 type_repas hors enum", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un type_repas absent de l'enum", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 1, type_repas: "relou", lignes: [1] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Type de repas invalide" });
+  });
+});
