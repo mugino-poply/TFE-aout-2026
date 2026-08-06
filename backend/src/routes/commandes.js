@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
-import { TypeClient } from "@prisma/client";
+import { TypeClient, TypeRepas } from "@prisma/client";
 
 const commandesRouter = Router();
 
@@ -16,6 +16,10 @@ commandesRouter.post("/", (req, res) => {
 
     if (type_client !== undefined && !Object.values(TypeClient).includes(type_client)) {
         return res.status(400).json({ error: "Type de client invalide" });
+    }
+
+    if (!Object.values(TypeRepas).includes(type_repas)) {
+        return res.status(400).json({ error: "Type de repas invalide" });
     }
 
     res.sendStatus(501)
