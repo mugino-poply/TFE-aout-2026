@@ -179,3 +179,28 @@ describe("POST /api/commandes - 400 lignes vide", () => {
     expect(res.body).toEqual({ error: "Lignes vides" });
   });
 });
+
+describe("POST /api/commandes - 400 id_option non entier", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un id_option non entier dans lignes", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 1, type_repas: "diner", lignes: [1, "abc", 3] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Identifiant d'option invalide" });
+  });
+});
