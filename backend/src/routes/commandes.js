@@ -34,6 +34,10 @@ commandesRouter.post("/", (req, res) => {
         return res.status(400).json({ error: "Identifiant d'option invalide" });
     }
 
+    if (new Set(lignes).size !== lignes.length) {
+        return res.status(400).json({ error: "Lignes en double" });
+    }
+
     res.sendStatus(501)
 });
 
