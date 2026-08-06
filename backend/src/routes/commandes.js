@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
 import { TypeClient, TypeRepas } from "@prisma/client";
+import prisma from "../lib/prisma.js";
 
 const commandesRouter = Router();
 
 commandesRouter.use(authenticateToken);
 commandesRouter.use(requireRole(["secretaire"]));
 
-commandesRouter.post("/", (req, res) => {
+commandesRouter.post("/", async (req, res) => {
     const { id_resident, type_repas, lignes, type_client } = req.body;
 
     if (!id_resident || !type_repas || !lignes) {
@@ -40,6 +41,11 @@ commandesRouter.post("/", (req, res) => {
 
     if (new Set(lignes).size !== lignes.length) {
         return res.status(400).json({ error: "Lignes en double" });
+    }
+
+    const resident = await prisma.resident.findFirst({ where: { id_resident } });
+    if (!resident) {
+            return res.status(404).json({ error: "Résident introuvable" });
     }
 
     res.sendStatus(501)
