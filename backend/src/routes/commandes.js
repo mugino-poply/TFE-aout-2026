@@ -14,6 +14,10 @@ commandesRouter.post("/", (req, res) => {
         return res.status(400).json({ error: "Champs obligatoires manquants" });
     }
 
+    if (!Number.isInteger(id_resident)) {
+        return res.status(400).json({ error: "Identifiant de résident invalide" });
+    }
+
     if (type_client !== undefined && !Object.values(TypeClient).includes(type_client)) {
         return res.status(400).json({ error: "Type de client invalide" });
     }
