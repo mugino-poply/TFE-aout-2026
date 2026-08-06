@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
+import { TypeClient } from "@prisma/client";
 
 const commandesRouter = Router();
 
@@ -7,11 +8,16 @@ commandesRouter.use(authenticateToken);
 commandesRouter.use(requireRole(["secretaire"]));
 
 commandesRouter.post("/", (req, res) => {
-    const { id_resident, type_repas, lignes } = req.body;
+    const { id_resident, type_repas, lignes, type_client } = req.body;
 
     if (!id_resident || !type_repas || !lignes) {
-    return res.status(400).json({ error: "Champs obligatoires manquants" });
+        return res.status(400).json({ error: "Champs obligatoires manquants" });
     }
+
+    if (type_client !== undefined && !Object.values(TypeClient).includes(type_client)) {
+        return res.status(400).json({ error: "Type de client invalide" });
+    }
+
     res.sendStatus(501)
 });
 
