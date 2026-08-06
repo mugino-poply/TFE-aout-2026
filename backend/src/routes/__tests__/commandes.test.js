@@ -254,3 +254,28 @@ describe("POST /api/commandes - 400 id_resident non entier", () => {
     expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
   });
 });
+
+describe("POST /api/commandes - 404 résident absent", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette une commande sur un résident inexistant", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 999999, type_repas: "diner", lignes: [1] });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Résident introuvable" });
+  });
+});
