@@ -143,6 +143,7 @@ describe("POST /api/commandes - 400 lignes non-tableau", () => {
   });
 
   it("rejette un lignes qui n'est pas un tableau", async () => {
+    // "abc" est truthy; id_resident et type_repas valides
     const res = await request(app)
       .post("/api/commandes")
       .set("Authorization", `Bearer ${tokenSecretaire}`)
@@ -150,5 +151,31 @@ describe("POST /api/commandes - 400 lignes non-tableau", () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: "Lignes invalides" });
+  });
+});
+
+describe("POST /api/commandes - 400 lignes vide", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un lignes vide", async () => {
+    // [] est truthy et bien un tableau 
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: 1, type_repas: "diner", lignes: [] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Lignes vides" });
   });
 });
