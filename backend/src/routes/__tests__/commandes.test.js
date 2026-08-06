@@ -229,3 +229,28 @@ describe("POST /api/commandes - 400 lignes en double", () => {
     expect(res.body).toEqual({ error: "Lignes en double" });
   });
 });
+
+describe("POST /api/commandes - 400 id_resident non entier", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette un id_resident non entier", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: "abc", type_repas: "diner", lignes: [1] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Identifiant de résident invalide" });
+  });
+});
