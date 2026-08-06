@@ -30,6 +30,10 @@ commandesRouter.post("/", (req, res) => {
         return res.status(400).json({ error: "Lignes vides" });
     }
 
+    if (!lignes.every((id) => Number.isInteger(id))) {
+        return res.status(400).json({ error: "Identifiant d'option invalide" });
+    }
+
     res.sendStatus(501)
 });
 
