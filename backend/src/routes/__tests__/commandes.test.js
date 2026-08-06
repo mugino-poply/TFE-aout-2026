@@ -149,6 +149,6 @@ describe("POST /api/commandes - 400 lignes non-tableau", () => {
       .send({ id_resident: 1, type_repas: "diner", lignes: "abc" });
 
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: "Format de lignes invalide" });
+    expect(res.body).toEqual({ error: "Lignes invalides" });
   });
 });
