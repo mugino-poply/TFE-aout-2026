@@ -4,6 +4,35 @@ import { describe, it, expect, beforeAll } from "vitest";
 import app from "../../app.js";
 import prisma from "../../lib/prisma.js";
 
+describe("POST /api/commandes - auth (né-vert via montage)", () => {
+  let tokenCuisine;
+
+  beforeAll(async () => {
+    const cuisine = await prisma.utilisateur.findUnique({
+      where: { login: "cuisine1" },
+    });
+    tokenCuisine = jwt.sign(
+      { userId: cuisine.id_utilisateur, role: "cuisine" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("rejette une requête sans token (401)", async () => {
+    const res = await request(app).post("/api/commandes").send({});
+    expect(res.status).toBe(401);
+  });
+
+  it("refuse la cuisine (403)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenCuisine}`)
+      .send({});
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Accès refusé" });
+  });
+});
+
 describe("POST /api/commandes - 400 type_client hors enum", () => {
   let tokenSecretaire;
 
