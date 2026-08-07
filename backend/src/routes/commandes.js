@@ -63,37 +63,45 @@ commandesRouter.post("/", async (req, res) => {
 
   const dateRepas = options[0].menu.date_menu;
 
-  const commande = await prisma.commande.create({
-    data: {
-      type_repas,
-      date_repas: dateRepas,
-      resident: { connect: { id_resident } },
-      utilisateur: { connect: { id_utilisateur: req.user.userId } },
-      lignes: {
-        create: lignes.map((id_option) => ({
-          option: { connect: { id_option } },
-        })),
+  try{
+    const commande = await prisma.commande.create({
+      data: {
+        type_repas,
+        date_repas: dateRepas,
+        resident: { connect: { id_resident } },
+        utilisateur: { connect: { id_utilisateur: req.user.userId } },
+        lignes: {
+          create: lignes.map((id_option) => ({
+            option: { connect: { id_option } },
+          })),
+        },
       },
-    },
-    select: {
-      id_commande: true,
-      id_resident: true,
-      date_repas: true,
-      type_repas: true,
-      statut: true,
-      type_client: true,
-      en_appartement: true,
-      note_invite: true,
-      remarque: true,
-      lignes: {
-        select: { option: { select: { id_option: true, libelle: true, categorie: true } } },
+      select: {
+        id_commande: true,
+        id_resident: true,
+        date_repas: true,
+        type_repas: true,
+        statut: true,
+        type_client: true,
+        en_appartement: true,
+        note_invite: true,
+        remarque: true,
+        lignes: {
+          select: { option: { select: { id_option: true, libelle: true, categorie: true } } },
+        },
       },
-    },
-  });
+    });
 
-  const optionParId = new Map(commande.lignes.map((l) => [l.option.id_option, l.option]));
-  const lignesOrdonnees = lignes.map((id) => optionParId.get(id));
-  return res.status(201).json({ ...commande, lignes: lignesOrdonnees });
+    const optionParId = new Map(commande.lignes.map((l) => [l.option.id_option, l.option]));
+    const lignesOrdonnees = lignes.map((id) => optionParId.get(id));
+    return res.status(201).json({ ...commande, lignes: lignesOrdonnees });
+  } catch (e) {
+    if (e.code === "P2002") {
+      return res.status(409).json({ error: "Commande déjà existante" });
+    }
+    throw e;
+  }
 });
+
 
 export default commandesRouter;
