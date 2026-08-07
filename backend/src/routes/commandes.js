@@ -48,6 +48,14 @@ commandesRouter.post("/", async (req, res) => {
         return res.status(404).json({ error: "Résident introuvable" });
     }
 
+    const options = await prisma.optionMenu.findMany({
+        where: { id_option: { in: lignes } },
+        select: { id_option: true },
+    });
+    if (options.length !== lignes.length) {
+        return res.status(404).json({ error: "Option(s) introuvable(s)" });
+    }
+
     res.sendStatus(501)
 });
 
