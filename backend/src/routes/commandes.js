@@ -43,9 +43,9 @@ commandesRouter.post("/", async (req, res) => {
         return res.status(400).json({ error: "Lignes en double" });
     }
 
-    const resident = await prisma.resident.findFirst({ where: { id_resident } });
+    const resident = await prisma.resident.findFirst({ where: { id_resident, actif: true } });
     if (!resident) {
-            return res.status(404).json({ error: "Résident introuvable" });
+        return res.status(404).json({ error: "Résident introuvable" });
     }
 
     res.sendStatus(501)
