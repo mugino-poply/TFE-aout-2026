@@ -413,3 +413,74 @@ describe("POST /api/commandes - 400 options de menus différents", () => {
     expect(res.body).toEqual({ error: "Options de menus différents" });
   });
 });
+
+describe("POST /api/commandes - 201 création (résident, dérivation, connects)", () => {
+  let tokenSecretaire;
+  let idSecretaire;
+  let idResident;
+  let idOptionPlat;
+  let idOptionDessert;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    idSecretaire = secretaire.id_utilisateur;
+    tokenSecretaire = jwt.sign(
+      { userId: idSecretaire, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // résident actif du seed
+    const herve = await prisma.resident.findFirst({
+      where: { prenom: "Hervé", nom: "Raskin" },
+    });
+    idResident = herve.id_resident;
+
+    // date 2026-08-14 : distincte des dates déjà prises dans ce fichier (10, 12, 13)
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-14T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: {
+          create: [
+            { libelle: "Poulet rôti", categorie: "plat" },
+            { libelle: "Tarte maison", categorie: "dessert" },
+          ],
+        },
+      },
+      select: { options: { select: { id_option: true, categorie: true } } },
+    });
+    idOptionPlat = menu.options.find((o) => o.categorie === "plat").id_option;
+    idOptionDessert = menu.options.find((o) => o.categorie === "dessert").id_option;
+  });
+
+  it("crée la commande, dérive la date et connecte résident/auteur/options", async () => {
+    // body minimal
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionPlat, idOptionDessert] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.id_commande).toBeTypeOf("number");
+
+    // relecture base : la création est réelle, la dérivation correcte, req.user traverse
+    const enBase = await prisma.commande.findUnique({
+      where: { id_commande: res.body.id_commande },
+      select: {
+        date_repas: true,
+        created_by: true,
+        statut: true,
+        lignes: { select: { id_option: true } },
+      },
+    });
+    // date dérivée = date du menu des options
+    expect(enBase.date_repas.toISOString()).toBe("2026-08-14T00:00:00.000Z");
+    expect(enBase.created_by).toBe(idSecretaire); 
+    expect(enBase.statut).toBe("active"); // default
+    expect(enBase.lignes).toHaveLength(2); // les deux lignes créées
+  });
+});
