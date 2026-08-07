@@ -355,3 +355,61 @@ describe("POST /api/commandes - 404 option inexistante", () => {
     expect(res.body).toEqual({ error: "Option(s) introuvable(s)" });
   });
 });
+
+describe("POST /api/commandes - 400 options de menus différents", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionMenuA;
+  let idOptionMenuB;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // résident actif du seed
+    const herve = await prisma.resident.findFirst({
+      where: { prenom: "Hervé", nom: "Raskin" },
+    });
+    idResident = herve.id_resident;
+
+    // menu A (2026-08-12) et menu B (2026-08-13) : dates distinctes entre elles
+    // ET distinctes du 2026-08-10 du bloc existence (date_menu @unique, reseed par fichier)
+    const menuA = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-12T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: { create: [{ libelle: "Poulet rôti", categorie: "plat" }] },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionMenuA = menuA.options[0].id_option;
+
+    const menuB = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-13T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: { create: [{ libelle: "Tarte maison", categorie: "dessert" }] },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionMenuB = menuB.options[0].id_option;
+  });
+
+  it("rejette un panier qui mélange deux menus", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionMenuA, idOptionMenuB] });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Options de menus différents" });
+  });
+});
