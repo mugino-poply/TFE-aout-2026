@@ -311,3 +311,47 @@ describe("POST /api/commandes - 404 résident inactif", () => {
     expect(res.body).toEqual({ error: "Résident introuvable" });
   });
 });
+
+describe("POST /api/commandes - 404 option inexistante", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionReelle;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // résident actif du seed, résolu par clé métier (Hervé Raskin, appart 4, solo actif)
+    const herve = await prisma.resident.findFirst({
+      where: { prenom: "Hervé", nom: "Raskin" },
+    });
+    idResident = herve.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-10T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: { create: [{ libelle: "Poulet rôti", categorie: "plat" }] },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionReelle = menu.options[0].id_option;
+  });
+
+  it("rejette une commande avec un id_option inexistant", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionReelle, 999999] });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Option(s) introuvable(s)" });
+  });
+});
