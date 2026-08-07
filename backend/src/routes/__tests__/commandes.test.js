@@ -548,3 +548,53 @@ describe("POST /api/commandes - 201 forme exacte du corps", () => {
     });
   });
 });
+
+describe("POST /api/commandes - 409 doublon résident actif", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOption;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const herve = await prisma.resident.findFirst({
+      where: { prenom: "Hervé", nom: "Raskin" },
+    });
+    idResident = herve.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-16T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: { create: [{ libelle: "Poulet rôti", categorie: "plat" }] },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOption = menu.options[0].id_option;
+  });
+
+  it("rejette une seconde commande identique pour un résident actif", async () => {
+    const body = { id_resident: idResident, type_repas: "diner", lignes: [idOption] };
+
+    const premier = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send(body);
+    expect(premier.status).toBe(201);
+
+    const second = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send(body);
+    expect(second.status).toBe(409);
+    expect(second.body).toEqual({ error: "Commande déjà existante" });
+  });
+});
