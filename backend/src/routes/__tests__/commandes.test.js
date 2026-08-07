@@ -279,3 +279,35 @@ describe("POST /api/commandes - 404 résident absent", () => {
     expect(res.body).toEqual({ error: "Résident introuvable" });
   });
 });
+
+describe("POST /api/commandes - 404 résident inactif", () => {
+  let tokenSecretaire;
+  let idBaudouin;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // Baudouin Koning : inactif du seed (appart 6), résolu par prenom/nom
+    const baudouin = await prisma.resident.findFirst({
+      where: { prenom: "Baudouin", nom: "Koning" },
+    });
+    idBaudouin = baudouin.id_resident;
+  });
+
+  it("rejette une commande sur un résident inactif", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idBaudouin, type_repas: "diner", lignes: [1] });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Résident introuvable" });
+  });
+});
