@@ -50,10 +50,15 @@ commandesRouter.post("/", async (req, res) => {
 
     const options = await prisma.optionMenu.findMany({
         where: { id_option: { in: lignes } },
-        select: { id_option: true },
+        select: { id_option: true, id_menu: true },
     });
     if (options.length !== lignes.length) {
         return res.status(404).json({ error: "Option(s) introuvable(s)" });
+    }
+
+    const menusDistincts = new Set(options.map((o) => o.id_menu));
+    if (menusDistincts.size !== 1) {
+        return res.status(400).json({ error: "Options de menus différents" });
     }
 
     res.sendStatus(501)
