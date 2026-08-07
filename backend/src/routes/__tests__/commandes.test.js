@@ -484,3 +484,67 @@ describe("POST /api/commandes - 201 création (résident, dérivation, connects)
     expect(enBase.lignes).toHaveLength(2); // les deux lignes créées
   });
 });
+
+describe("POST /api/commandes - 201 forme exacte du corps", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionPlat;
+  let idOptionDessert;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const herve = await prisma.resident.findFirst({
+      where: { prenom: "Hervé", nom: "Raskin" },
+    });
+    idResident = herve.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-15T00:00:00.000Z"),
+        semaine: 33,
+        annee: 2026,
+        options: {
+          create: [
+            { libelle: "Poulet rôti", categorie: "plat" },
+            { libelle: "Tarte maison", categorie: "dessert" },
+          ],
+        },
+      },
+      select: { options: { select: { id_option: true, categorie: true } } },
+    });
+    idOptionPlat = menu.options.find((o) => o.categorie === "plat").id_option;
+    idOptionDessert = menu.options.find((o) => o.categorie === "dessert").id_option;
+  });
+
+  it("renvoie l'enveloppe minimisée, lignes aplaties et ordonnées, sans champ interne", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionPlat, idOptionDessert] });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({
+      id_commande: expect.any(Number),
+      id_resident: idResident,
+      date_repas: "2026-08-15T00:00:00.000Z",
+      type_repas: "diner",
+      statut: "active",
+      type_client: "resident",
+      en_appartement: false,
+      note_invite: null,
+      remarque: null,
+      lignes: [
+        { id_option: idOptionPlat, libelle: "Poulet rôti", categorie: "plat" },
+        { id_option: idOptionDessert, libelle: "Tarte maison", categorie: "dessert" },
+      ],
+    });
+  });
+});

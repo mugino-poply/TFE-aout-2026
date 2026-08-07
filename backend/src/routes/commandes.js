@@ -75,10 +75,25 @@ commandesRouter.post("/", async (req, res) => {
         })),
       },
     },
-    select: { id_commande: true },
+    select: {
+      id_commande: true,
+      id_resident: true,
+      date_repas: true,
+      type_repas: true,
+      statut: true,
+      type_client: true,
+      en_appartement: true,
+      note_invite: true,
+      remarque: true,
+      lignes: {
+        select: { option: { select: { id_option: true, libelle: true, categorie: true } } },
+      },
+    },
   });
 
-  return res.status(201).json({ id_commande: commande.id_commande });
+  const optionParId = new Map(commande.lignes.map((l) => [l.option.id_option, l.option]));
+  const lignesOrdonnees = lignes.map((id) => optionParId.get(id));
+  return res.status(201).json({ ...commande, lignes: lignesOrdonnees });
 });
 
 export default commandesRouter;
