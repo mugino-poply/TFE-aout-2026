@@ -598,3 +598,50 @@ describe("POST /api/commandes - 409 doublon résident actif", () => {
     expect(second.body).toEqual({ error: "Commande déjà existante" });
   });
 });
+
+describe("POST /api/commandes - 201 détection allergie (US-14, IT-02 peuplé)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionArachide;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const giselle = await prisma.resident.findFirst({
+      where: { prenom: "Giselle", nom: "VanDenStraat" },
+    });
+    idResident = giselle.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-17T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Salade", categorie: "plat", contient_allergenes: "arachides" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionArachide = menu.options[0].id_option;
+  });
+
+  it("crée la commande (201) et renvoie l'allergène détecté, sans bloquer", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionArachide] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "Arachides", type: "allergie", option_concernee: "Salade" },
+    ]);
+  });
+});
