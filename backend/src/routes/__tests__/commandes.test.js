@@ -545,6 +545,7 @@ describe("POST /api/commandes - 201 forme exacte du corps", () => {
         { id_option: idOptionPlat, libelle: "Poulet rôti", categorie: "plat" },
         { id_option: idOptionDessert, libelle: "Tarte maison", categorie: "dessert" },
       ],
+      allergies_detectees: [],
     });
   });
 });

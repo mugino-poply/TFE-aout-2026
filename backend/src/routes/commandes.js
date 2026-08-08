@@ -43,14 +43,26 @@ commandesRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Lignes en double" });
   }
 
-  const resident = await prisma.resident.findFirst({ where: { id_resident, actif: true } });
+  const resident = await prisma.resident.findFirst({ 
+    where: { id_resident, actif: true },
+    select: {
+      id_resident: true,
+      allergies: { select: { libelle: true, type: true } },
+    },
+  });
   if (!resident) {
     return res.status(404).json({ error: "Résident introuvable" });
   }
 
   const options = await prisma.optionMenu.findMany({
     where: { id_option: { in: lignes } },
-    select: { id_option: true, id_menu: true, menu: { select: { date_menu: true } } },
+    select: {
+      id_option: true,
+      id_menu: true,
+      libelle: true,
+      contient_allergenes: true,
+      menu: { select: { date_menu: true } },
+    },
   });
   if (options.length !== lignes.length) {
     return res.status(404).json({ error: "Option(s) introuvable(s)" });
@@ -62,6 +74,20 @@ commandesRouter.post("/", async (req, res) => {
   }
 
   const dateRepas = options[0].menu.date_menu;
+  const allergies_detectees = [];
+  for (const option of options) {
+    if (!option.contient_allergenes) continue;
+    const declare = option.contient_allergenes.toLowerCase();
+    for (const allergie of resident.allergies) {
+      if (declare.includes(allergie.libelle.toLowerCase())) {
+        allergies_detectees.push({
+          libelle: allergie.libelle,
+          type: allergie.type,
+          option_concernee: option.libelle,
+        });
+      }
+    }
+  }
 
   try{
     const commande = await prisma.commande.create({
@@ -94,8 +120,7 @@ commandesRouter.post("/", async (req, res) => {
 
     const optionParId = new Map(commande.lignes.map((l) => [l.option.id_option, l.option]));
     const lignesOrdonnees = lignes.map((id) => optionParId.get(id));
-    return res.status(201).json({ ...commande, lignes: lignesOrdonnees });
-  } catch (e) {
+    return res.status(201).json({ ...commande, lignes: lignesOrdonnees, allergies_detectees });  } catch (e) {
     if (e.code === "P2002") {
       return res.status(409).json({ error: "Commande déjà existante" });
     }
