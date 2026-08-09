@@ -759,7 +759,6 @@ describe("POST /api/commandes - 201 détection accents symétrique (US-14, côt�
       { expiresIn: "11h" }
     );
 
-    // Francis : actif, vierge d'allergie au seed. Allergie NUE (sans accent), isolée.
     const francis = await prisma.resident.findFirst({
       where: { prenom: "Francis", nom: "De Jonghe" },
     });
@@ -773,7 +772,6 @@ describe("POST /api/commandes - 201 détection accents symétrique (US-14, côt�
       },
     });
 
-    // Champ cuisine ACCENTUÉ : le désaccord tombe côté champ cette fois.
     const menu = await prisma.menu.create({
       data: {
         date_menu: new Date("2026-08-20T00:00:00.000Z"),
@@ -798,5 +796,49 @@ describe("POST /api/commandes - 201 détection accents symétrique (US-14, côt�
     expect(res.body.allergies_detectees).toEqual([
       { libelle: "Celeri", type: "allergie", option_concernee: "Gratin" },
     ]);
+  });
+});
+
+describe("POST /api/commandes - 201 allergène déclaré étranger au résident (US-14, négatif de matching)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionGluten;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // Giselle est allergique "Arachides" (seed). Le plat déclare un allergène REMPLI mais ÉTRANGER.
+    const giselle = await prisma.resident.findFirst({
+      where: { prenom: "Giselle", nom: "VanDenStraat" },
+    });
+    idResident = giselle.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-21T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Gratin", categorie: "plat", contient_allergenes: "gluten" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionGluten = menu.options[0].id_option;
+  });
+
+  it("ne signale rien quand le plat déclare un allergène qui n'est pas celui du résident (né-vert discriminant : rouge sur une impl qui alerte sur tout champ contient_allergenes rempli sans comparer au résident)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionGluten] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([]);
   });
 });

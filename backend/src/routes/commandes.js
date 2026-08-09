@@ -76,7 +76,7 @@ commandesRouter.post("/", async (req, res) => {
   }
 
   const dateRepas = options[0].menu.date_menu;
-const allergies_detectees = [];
+  const allergies_detectees = [];
   for (const option of options) {
     if (!option.contient_allergenes) continue;
     const declare = normalise(option.contient_allergenes);
