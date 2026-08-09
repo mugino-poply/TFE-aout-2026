@@ -4,6 +4,8 @@ import { TypeClient, TypeRepas } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 
 const commandesRouter = Router();
+const normalise = (s) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 commandesRouter.use(authenticateToken);
 commandesRouter.use(requireRole(["secretaire"]));
@@ -74,19 +76,12 @@ commandesRouter.post("/", async (req, res) => {
   }
 
   const dateRepas = options[0].menu.date_menu;
-  const allergies_detectees = [];
+const allergies_detectees = [];
   for (const option of options) {
     if (!option.contient_allergenes) continue;
-    const declare = option.contient_allergenes
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+    const declare = normalise(option.contient_allergenes);
     for (const allergie of resident.allergies) {
-      const libelle = allergie.libelle
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-      if (declare.includes(libelle)) {
+      if (declare.includes(normalise(allergie.libelle))) {
         allergies_detectees.push({
           libelle: allergie.libelle,
           type: allergie.type,
