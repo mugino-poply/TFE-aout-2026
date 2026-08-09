@@ -77,9 +77,16 @@ commandesRouter.post("/", async (req, res) => {
   const allergies_detectees = [];
   for (const option of options) {
     if (!option.contient_allergenes) continue;
-    const declare = option.contient_allergenes.toLowerCase();
+    const declare = option.contient_allergenes
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
     for (const allergie of resident.allergies) {
-      if (declare.includes(allergie.libelle.toLowerCase())) {
+      const libelle = allergie.libelle
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      if (declare.includes(libelle)) {
         allergies_detectees.push({
           libelle: allergie.libelle,
           type: allergie.type,
