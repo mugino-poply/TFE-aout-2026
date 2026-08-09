@@ -646,3 +646,49 @@ describe("POST /api/commandes - 201 détection allergie (US-14, IT-02 peuplé)",
     ]);
   });
 });
+
+describe("POST /api/commandes - 201 allergène au menu mais non commandé (US-14, portée)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionNeutre;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const giselle = await prisma.resident.findFirst({
+      where: { prenom: "Giselle", nom: "VanDenStraat" },
+    });
+    idResident = giselle.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-18T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [
+            { libelle: "Salade", categorie: "entree", contient_allergenes: "arachides" },
+            { libelle: "Poulet rôti", categorie: "plat" },
+          ],
+        },
+      },
+      select: { options: { select: { id_option: true, categorie: true } } },
+    });
+    idOptionNeutre = menu.options.find((o) => o.categorie === "plat").id_option;
+  });
+
+  it("ne signale rien quand l'allergène est au menu mais absent de la commande (né-vert discriminant : vert sur l'itération des lignes commandées, rouge sur une impl qui parcourt le menu du jour)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionNeutre] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([]);
+  });
+});
