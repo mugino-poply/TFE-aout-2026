@@ -745,3 +745,58 @@ describe("POST /api/commandes - 201 détection insensible aux accents (US-14)", 
     ]);
   });
 });
+
+describe("POST /api/commandes - 201 détection accents symétrique (US-14, côté champ)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionCeleri;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // Francis : actif, vierge d'allergie au seed. Allergie NUE (sans accent), isolée.
+    const francis = await prisma.resident.findFirst({
+      where: { prenom: "Francis", nom: "De Jonghe" },
+    });
+    idResident = francis.id_resident;
+    await prisma.allergie.create({
+      data: {
+        id_resident: francis.id_resident,
+        libelle: "Celeri",
+        type: "allergie",
+        created_by: secretaire.id_utilisateur,
+      },
+    });
+
+    // Champ cuisine ACCENTUÉ : le désaccord tombe côté champ cette fois.
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-20T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Gratin", categorie: "plat", contient_allergenes: "Céleri" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionCeleri = menu.options[0].id_option;
+  });
+
+  it("détecte l'allergène quand l'allergie n'est pas accentuée et le champ cuisine l'est (né-vert discriminant : rouge sur une impl qui ne normalise pas le champ cuisine)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionCeleri] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "Celeri", type: "allergie", option_concernee: "Gratin" },
+    ]);
+  });
+});
