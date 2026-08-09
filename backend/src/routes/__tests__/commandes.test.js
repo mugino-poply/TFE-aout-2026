@@ -692,3 +692,56 @@ describe("POST /api/commandes - 201 allergène au menu mais non commandé (US-14
     expect(res.body.allergies_detectees).toEqual([]);
   });
 });
+
+describe("POST /api/commandes - 201 détection insensible aux accents (US-14)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionCeleri;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const pierrot = await prisma.resident.findFirst({
+      where: { prenom: "Pierrot", nom: "VanDenStraat" },
+    });
+    idResident = pierrot.id_resident;
+    await prisma.allergie.create({
+      data: {
+        id_resident: pierrot.id_resident,
+        libelle: "Céleri",
+        type: "allergie",
+        created_by: secretaire.id_utilisateur,
+      },
+    });
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-19T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Gratin", categorie: "plat", contient_allergenes: "celeri" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionCeleri = menu.options[0].id_option;
+  });
+
+  it("détecte l'allergène quand l'allergie est accentuée et le champ cuisine ne l'est pas", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionCeleri] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "Céleri", type: "allergie", option_concernee: "Gratin" },
+    ]);
+  });
+});
