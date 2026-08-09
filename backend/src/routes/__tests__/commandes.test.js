@@ -600,7 +600,7 @@ describe("POST /api/commandes - 409 doublon résident actif", () => {
   });
 });
 
-describe("POST /api/commandes - 201 détection allergie (US-14, IT-02 peuplé)", () => {
+describe("POST /api/commandes - 201 détection allergie (US-14, IT-02)", () => {
   let tokenSecretaire;
   let idResident;
   let idOptionArachide;
@@ -812,7 +812,7 @@ describe("POST /api/commandes - 201 allergène déclaré étranger au résident 
       { expiresIn: "11h" }
     );
 
-    // Giselle est allergique "Arachides" (seed). Le plat déclare un allergène REMPLI mais ÉTRANGER.
+    // Giselle est allergique aux "Arachides" pas au "gluten"
     const giselle = await prisma.resident.findFirst({
       where: { prenom: "Giselle", nom: "VanDenStraat" },
     });
