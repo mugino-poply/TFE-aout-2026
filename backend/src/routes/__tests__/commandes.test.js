@@ -842,3 +842,48 @@ describe("POST /api/commandes - 201 allergène déclaré étranger au résident 
     expect(res.body.allergies_detectees).toEqual([]);
   });
 });
+
+describe("POST /api/commandes - 201 détection par le nom du plat (US-14, canal libelle)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionNommee;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const giselle = await prisma.resident.findFirst({
+      where: { prenom: "Giselle", nom: "VanDenStraat" },
+    });
+    idResident = giselle.id_resident;
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-22T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Tarte aux arachides", categorie: "dessert" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionNommee = menu.options[0].id_option;
+  });
+
+  it("détecte l'allergène quand il apparaît dans le nom du plat et que la liste dédiée est vide", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionNommee] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "Arachides", type: "allergie", option_concernee: "Tarte aux arachides" },
+    ]);
+  });
+});
