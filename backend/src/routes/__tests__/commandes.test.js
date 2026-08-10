@@ -940,3 +940,57 @@ describe("POST /api/commandes - 201 détection insensible à la ligature oe (US-
     ]);
   });
 });
+
+describe("POST /api/commandes - 201 détection ligature côté allergie du résident (US-14, invariant AT-02)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionOeufs;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    // Giselle : allergie déclarée avec la LIGATURE "Œuf". Son "Arachides" seedé reste distinct.
+    const giselle = await prisma.resident.findFirst({
+      where: { prenom: "Giselle", nom: "VanDenStraat" },
+    });
+    idResident = giselle.id_resident;
+    await prisma.allergie.create({
+      data: {
+        id_resident: giselle.id_resident,
+        libelle: "Œuf",
+        type: "allergie",
+        created_by: secretaire.id_utilisateur,
+      },
+    });
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-24T00:00:00.000Z"),
+        semaine: 35,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Salade", categorie: "entree", contient_allergenes: "oeufs" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionOeufs = menu.options[0].id_option;
+  });
+
+  it("détecte l'allergène quand le résident déclare 'Œuf' avec la ligature et la cuisine 'oeufs' en deux lettres (né-vert discriminant : rouge sur une impl qui ne normalise pas la ligature côté allergie)", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionOeufs] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "Œuf", type: "allergie", option_concernee: "Salade" },
+    ]);
+  });
+});
