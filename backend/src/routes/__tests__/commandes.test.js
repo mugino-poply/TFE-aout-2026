@@ -887,3 +887,56 @@ describe("POST /api/commandes - 201 détection par le nom du plat (US-14, canal 
     ]);
   });
 });
+
+describe("POST /api/commandes - 201 détection insensible à la ligature oe (US-14, invariant AT-02)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idOptionOeufs;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const pierrot = await prisma.resident.findFirst({
+      where: { prenom: "Pierrot", nom: "VanDenStraat" },
+    });
+    idResident = pierrot.id_resident;
+    await prisma.allergie.create({
+      data: {
+        id_resident: pierrot.id_resident,
+        libelle: "oeuf",
+        type: "allergie",
+        created_by: secretaire.id_utilisateur,
+      },
+    });
+
+    const menu = await prisma.menu.create({
+      data: {
+        date_menu: new Date("2026-08-23T00:00:00.000Z"),
+        semaine: 34,
+        annee: 2026,
+        options: {
+          create: [{ libelle: "Salade", categorie: "entree", contient_allergenes: "Œufs" }],
+        },
+      },
+      select: { options: { select: { id_option: true } } },
+    });
+    idOptionOeufs = menu.options[0].id_option;
+  });
+
+  it("détecte l'allergène quand le résident déclare 'oeuf' et la cuisine 'Œufs' avec la ligature", async () => {
+    const res = await request(app)
+      .post("/api/commandes")
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ id_resident: idResident, type_repas: "diner", lignes: [idOptionOeufs] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.allergies_detectees).toEqual([
+      { libelle: "oeuf", type: "allergie", option_concernee: "Salade" },
+    ]);
+  });
+});
