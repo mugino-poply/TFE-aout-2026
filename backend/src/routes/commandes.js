@@ -5,7 +5,7 @@ import prisma from "../lib/prisma.js";
 
 const commandesRouter = Router();
 const normalise = (s) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/œ/g, "oe");
 
 commandesRouter.use(authenticateToken);
 commandesRouter.use(requireRole(["secretaire"]));
