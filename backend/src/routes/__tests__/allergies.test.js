@@ -595,4 +595,17 @@ describe("POST /api/residents/:id/allergies - 409 doublon sur forme normalisée 
       .send({ libelle: "oeufs", type: "allergie" });
     expect(b.status).toBe(409);
   });
+
+  it("n'est pas un doublon quand les libellés diffèrent par un caractère non sanctionné (æ vs ae)", async () => {
+    const a = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Cæsar", type: "allergie" });
+    expect(a.status).toBe(201);
+    const b = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Caesar", type: "allergie" });
+    expect(b.status).toBe(201);
+  });
 });
