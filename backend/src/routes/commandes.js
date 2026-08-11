@@ -49,6 +49,8 @@ commandesRouter.post("/", async (req, res) => {
     where: { id_resident, actif: true },
     select: {
       id_resident: true,
+      // libelle brut re-normalisé en JS. Va pas lire libelle_normalise
+      // (colonne SQL, contrainte AT-02), sinon SQL et JS doivent coïncider. Séparées exprès
       allergies: { select: { libelle: true, type: true } },
     },
   });
