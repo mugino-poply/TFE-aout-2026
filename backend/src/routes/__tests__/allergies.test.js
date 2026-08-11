@@ -1,6 +1,6 @@
 import request from "supertest";
 import jwt from "jsonwebtoken";
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import app from "../../app.js";
 import prisma from "../../lib/prisma.js";
 
@@ -518,5 +518,81 @@ describe("DELETE /api/residents/:id/allergies/:id_allergie - 404 existence et ap
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: "Allergie introuvable" });
+  });
+});
+
+describe("POST /api/residents/:id/allergies - 409 doublon sur forme normalisée (US-13, AT-02)", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idAppartement;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({ where: { login: "secretaire1" } });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+
+    const appart = await prisma.appartement.create({
+      data: { id_appartement: 9101, numero: 9101 },
+    });
+    idAppartement = appart.id_appartement;
+
+    const resident = await prisma.resident.create({
+      data: {
+        id_appartement: 9101,
+        prenom: "Test",
+        nom: "Doublon",
+        date_entree: new Date("2026-01-01T00:00:00.000Z"),
+        actif: true,
+      },
+    });
+    idResident = resident.id_resident;
+  });
+
+  afterAll(async () => {
+    await prisma.allergie.deleteMany({ where: { id_resident: idResident } });
+    if (idResident) await prisma.resident.deleteMany({ where: { id_resident: idResident } });
+    if (idAppartement) await prisma.appartement.delete({ where: { id_appartement: idAppartement } });
+  });
+
+  it("refuse une seconde allergie de même forme normalisée, casse différente (Arachides / arachides)", async () => {
+    const a = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Arachides", type: "allergie" });
+    expect(a.status).toBe(201);
+    const b = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "arachides", type: "allergie" });
+    expect(b.status).toBe(409);
+  });
+
+  it("refuse une seconde allergie de même forme normalisée, accent différent (Céleri / celeri)", async () => {
+    const a = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Céleri", type: "allergie" });
+    expect(a.status).toBe(201);
+    const b = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "celeri", type: "allergie" });
+    expect(b.status).toBe(409);
+  });
+
+  it("refuse une seconde allergie de même forme normalisée, ligature (Œufs / oeufs)", async () => {
+    const a = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "Œufs", type: "allergie" });
+    expect(a.status).toBe(201);
+    const b = await request(app)
+      .post(`/api/residents/${idResident}/allergies`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`)
+      .send({ libelle: "oeufs", type: "allergie" });
+    expect(b.status).toBe(409);
   });
 });
