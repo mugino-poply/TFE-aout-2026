@@ -42,15 +42,23 @@ allergiesRouter.post("/", async (req, res) => {
   // created_by passe par le connect sur utilisateur (relation, pas un scalaire direct)
   // req.user.userId vient du token décodé par authenticateToken
   // req.params.id = le résident dans l'URL, dispo grâce au mergeParams
-  const allergie = await prisma.allergie.create({
-    data: {
-      libelle,
-      notes,
-      type,
-      resident: { connect: { id_resident: idResident } },
-      utilisateur: { connect: { id_utilisateur: req.user.userId } },
-    },
-  });
+  let allergie;
+  try {
+    allergie = await prisma.allergie.create({
+      data: {
+        libelle,
+        notes,
+        type,
+        resident: { connect: { id_resident: idResident } },
+        utilisateur: { connect: { id_utilisateur: req.user.userId } },
+      },
+    });
+  } catch (e) {
+    if (e.code === "P2002") {
+      return res.status(409).json({ error: "Cette allergie est déjà enregistrée pour ce résident" });
+    }
+    throw e;
+  }
 
   res.status(201).json(allergie);
 });

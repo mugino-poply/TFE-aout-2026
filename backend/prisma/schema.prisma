@@ -42,6 +42,7 @@ model Allergie {
   created_by  Int
   resident    Resident     @relation(fields: [id_resident], references: [id_resident])
   utilisateur Utilisateur  @relation(fields: [created_by], references: [id_utilisateur])
+  libelle_normalise String
 
   @@index([id_resident])
 }
