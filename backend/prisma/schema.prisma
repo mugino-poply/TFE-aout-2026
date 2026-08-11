@@ -44,6 +44,7 @@ model Allergie {
   utilisateur Utilisateur  @relation(fields: [created_by], references: [id_utilisateur])
   libelle_normalise String
 
+  @@unique([id_resident, libelle_normalise], map: "allergie_resident_libelle_normalise_unique")
   @@index([id_resident])
 }
 
