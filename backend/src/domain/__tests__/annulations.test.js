@@ -44,7 +44,7 @@ describe("classerAnnulation - temps ou retard selon le seuil", () => {
     expect(classerAnnulation(3)).toBe("annulee_temps");
   });
 
-  // Né vert : frontière haute. Le seuil est >= 2, un écart de 2 est encore à temps
+  // Frontière haute du seuil : écart 2 est encore à temps. Pinne >= et non >
   it("classe annulee_temps à l'écart frontière de 2 jours", () => {
     expect(classerAnnulation(2)).toBe("annulee_temps");
   });
