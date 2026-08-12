@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { compterJours } from "../annulations.js";
+import { compterJours, classerAnnulations } from "../annulations.js";
 
 describe("compterJours - écart en jours civils belges", () => {
   it("rend 2 pour une annulation deux jours civils avant le repas", () => {
@@ -39,3 +39,8 @@ describe("compterJours - écart en jours civils belges", () => {
   });
 });
 
+describe("classerAnnulation - temps ou retard selon le seuil", () => {
+  it("classe annulee_temps quand l'écart dépasse le seuil", () => {
+    expect(classerAnnulation(3)).toBe("annulee_temps");
+  });
+});
