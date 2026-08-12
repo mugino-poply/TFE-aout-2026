@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { compterJours, classerAnnulation } from "../annulations.js";
+import { compterJours, classerAnnulation } from "../regles-annulations.js";
 
 describe("compterJours - écart en jours civils belges", () => {
   it("rend 2 pour une annulation deux jours civils avant le repas", () => {
