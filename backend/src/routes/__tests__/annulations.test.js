@@ -61,3 +61,25 @@ describe("PATCH /api/commandes/:id/annuler - nominal", () => {
     expect(enBase.statut).toBe("annulee_temps");
   });
 });
+
+describe("PATCH /api/commandes/:id/annuler - 404 commande absente", () => {
+  let tokenSecretaire;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+  });
+
+  it("répond 404 sur un id de commande inexistant", async () => {
+    const res = await request(app)
+      .patch("/api/commandes/999999/annuler")
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+    expect(res.status).toBe(404);
+  });
+});
