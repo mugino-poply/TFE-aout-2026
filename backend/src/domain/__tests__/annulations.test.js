@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { compterJours } from "../annulations.js";
 
 describe("compterJours - écart en jours civils belges", () => {
@@ -14,4 +14,28 @@ describe("compterJours - écart en jours civils belges", () => {
     const dateRepas = new Date("2026-03-30T12:00:00Z");
     expect(compterJours(annuleLe, dateRepas)).toBe(2);
   });
+
+    // 14/07 21h UTC = 23h heure belge (été, +2), jour civil belge = 14. Soustraire les instants bruts rend 27h => 1 ; la réduction en jour civil rend 2.
+  it("rend 2 quand l'annulation est en soirée de J-2", () => {
+    const annuleLe = new Date("2026-07-14T21:00:00Z");
+    const dateRepas = new Date("2026-07-16T00:00:00Z");
+    expect(compterJours(annuleLe, dateRepas)).toBe(2);
+  });
+
+  // 22h30 UTC = 00h30 belge le 15/07, écart 1. Sous TZ=UTC les getters natifs liraient le 14 => écart 2 ; la réduction Intl rend 1
+  describe("insensibilité au fuseau ambiant du process", () => {
+    const tzOrigine = process.env.TZ;
+    afterEach(() => {
+      if (tzOrigine === undefined) delete process.env.TZ;
+      else process.env.TZ = tzOrigine;
+    });
+
+    it("rend 1 sous TZ=UTC (jour natif divergent du jour belge)", () => {
+      process.env.TZ = "UTC";
+      const annuleLe = new Date("2026-07-14T22:30:00Z");
+      const dateRepas = new Date("2026-07-16T00:00:00Z");
+      expect(compterJours(annuleLe, dateRepas)).toBe(1);
+    });
+  });
 });
+
