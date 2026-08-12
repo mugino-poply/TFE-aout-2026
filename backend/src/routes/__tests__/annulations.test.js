@@ -83,3 +83,49 @@ describe("PATCH /api/commandes/:id/annuler - 404 commande absente", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("PATCH /api/commandes/:id/annuler - 409 ré-annulation", () => {
+  let tokenSecretaire;
+  let idResident;
+  let idCommande;
+
+  beforeAll(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    tokenSecretaire = jwt.sign(
+      { userId: secretaire.id_utilisateur, role: "secretaire" },
+      process.env.JWT_SECRET,
+      { expiresIn: "11h" }
+    );
+    const resident = await prisma.resident.findFirst({ where: { actif: true } });
+    idResident = resident.id_resident;
+  });
+
+  beforeEach(async () => {
+    const secretaire = await prisma.utilisateur.findUnique({
+      where: { login: "secretaire1" },
+    });
+    const commande = await prisma.commande.create({
+      data: {
+        id_resident: idResident,
+        date_repas: new Date("2026-07-16T00:00:00Z"),
+        type_repas: "diner",
+        created_by: secretaire.id_utilisateur,
+      },
+    });
+    idCommande = commande.id_commande;
+  });
+
+  it("refuse une seconde annulation de la même commande (409)", async () => {
+    const premier = await request(app)
+      .patch(`/api/commandes/${idCommande}/annuler`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+    expect(premier.status).toBe(200);
+
+    const second = await request(app)
+      .patch(`/api/commandes/${idCommande}/annuler`)
+      .set("Authorization", `Bearer ${tokenSecretaire}`);
+    expect(second.status).toBe(409);
+  });
+});
