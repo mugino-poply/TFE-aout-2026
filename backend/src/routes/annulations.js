@@ -16,6 +16,10 @@ annulationsRouter.patch("/:id/annuler", async (req, res) => {
     select: { date_repas: true },
   });
 
+  if (!commande) {
+    return res.status(404).json({ error: "Commande introuvable" });
+  }
+
   const now = new Date();
   const ecart = compterJours(now, commande.date_repas);
   const statut = classerAnnulation(ecart);
