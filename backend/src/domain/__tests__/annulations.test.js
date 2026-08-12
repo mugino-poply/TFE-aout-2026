@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { compterJours, classerAnnulations } from "../annulations.js";
+import { compterJours, classerAnnulation } from "../annulations.js";
 
 describe("compterJours - écart en jours civils belges", () => {
   it("rend 2 pour une annulation deux jours civils avant le repas", () => {
@@ -42,5 +42,20 @@ describe("compterJours - écart en jours civils belges", () => {
 describe("classerAnnulation - temps ou retard selon le seuil", () => {
   it("classe annulee_temps quand l'écart dépasse le seuil", () => {
     expect(classerAnnulation(3)).toBe("annulee_temps");
+  });
+
+  // Né vert : frontière haute. Le seuil est >= 2, un écart de 2 est encore à temps
+  it("classe annulee_temps à l'écart frontière de 2 jours", () => {
+    expect(classerAnnulation(2)).toBe("annulee_temps");
+  });
+
+  // Régression métier : la veille (écart 1) est facturée => annulee_retard
+  it("classe annulee_retard la veille (écart 1)", () => {
+    expect(classerAnnulation(1)).toBe("annulee_retard");
+  });
+
+  // Régression métier : repas déjà passé (écart négatif) = produit, facturé => annulee_retard
+  it("classe annulee_retard pour un repas déjà passé (écart négatif)", () => {
+    expect(classerAnnulation(-1)).toBe("annulee_retard");
   });
 });
