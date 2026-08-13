@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { resetLoginRateLimit } from "../../middlewares/rateLimit.js";
 import { LOGIN_MAX_ECHECS } from "../../config/rateLimit.js";
 import request from "supertest";
 import bcrypt from "bcrypt";
@@ -28,6 +29,10 @@ describe("POST /api/auth/login", () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  beforeEach(() => {
+    resetLoginRateLimit();
   });
 
   it("429 après LOGIN_MAX_ECHECS échecs sur le même compte", async () => {

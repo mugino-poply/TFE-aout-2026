@@ -2,11 +2,12 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from '../lib/prisma.js'
+import { loginRateLimit } from "../middlewares/rateLimit.js";
 
 
 const router = Router();
 
-router.post("/login", async (req, res) => {  // async sur le handler
+router.post("/login", loginRateLimit, async (req, res) => {  // async sur le handler
   const { id_utilisateur, code } = req.body;
 
   // Vérification de la longueut du code (>= 4 chiffres)
