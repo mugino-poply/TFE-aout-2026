@@ -24,10 +24,14 @@ annulationsRouter.patch("/:id/annuler", async (req, res) => {
   const ecart = compterJours(now, commande.date_repas);
   const statut = classerAnnulation(ecart);
 
-  await prisma.commande.updateMany({
+  const { count } = await prisma.commande.updateMany({
     where: { id_commande: id, statut: "active" },
     data: { statut, annule_le: now },
   });
+
+  if (count === 0) {
+    return res.status(409).json({ error: "Commande déjà annulée" });
+  }
 
   res.status(200).json({ statut });
 });
