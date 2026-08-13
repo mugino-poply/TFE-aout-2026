@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { LOGIN_MAX_ECHECS } from "../../config/rateLimit.js";
 import request from "supertest";
 import bcrypt from "bcrypt";
 import app from "../../app.js";
@@ -27,6 +28,19 @@ describe("POST /api/auth/login", () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  it("429 après LOGIN_MAX_ECHECS échecs sur le même compte", async () => {
+    for (let i = 0; i < LOGIN_MAX_ECHECS; i++) {
+      const echec = await request(app)
+        .post("/api/auth/login")
+        .send({ id_utilisateur: userActif.id_utilisateur, code: "9999" });
+      expect(echec.status).toBe(401);
+    }
+    const bloque = await request(app)
+      .post("/api/auth/login")
+      .send({ id_utilisateur: userActif.id_utilisateur, code: "9999" });
+    expect(bloque.status).toBe(429);
   });
 
   it("200 OK avec token JWT signé (userId, role, exp à 11h)", async () => {

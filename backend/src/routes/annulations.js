@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middlewares/auth.js";
 import prisma from "../lib/prisma.js";
-import { compterJours, classerAnnulation } from "../domain/regles-annulations.js";
+import { compterJours, classerAnnulation } from "../domain/reglesAnnulations.js";
 
 const annulationsRouter = Router();
 
@@ -33,6 +33,7 @@ annulationsRouter.patch("/:id/annuler", async (req, res) => {
     return res.status(409).json({ error: "Commande déjà annulée" });
   }
 
+  // Socket.IO commande_annulee (critère US-09) reporté à US-20, hors socle (gel 12/08). Voir registre d'arbitrages
   res.status(200).json({ statut });
 });
 
