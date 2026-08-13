@@ -44,7 +44,7 @@ describe("PATCH /api/commandes/:id/annuler - nominal", () => {
     vi.useRealTimers();
   });
 
-  it("annule une commande active trois jours avant le repas -> annulee_temps (200)", async () => {
+  it("annule une commande active trois jours avant le repas -> statut classé et annule_le horodaté (200)", async () => {
     // Annulation le 13/07 pour un repas le 16/07 : écart 3, franc (hors frontière 2, hors fenêtre minuit-2h)
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-07-13T12:00:00Z"));
@@ -59,6 +59,7 @@ describe("PATCH /api/commandes/:id/annuler - nominal", () => {
       where: { id_commande: idCommande },
     });
     expect(enBase.statut).toBe("annulee_temps");
+    expect(enBase.annule_le.getTime()).toBe(new Date("2026-07-13T12:00:00Z").getTime());
   });
 });
 
