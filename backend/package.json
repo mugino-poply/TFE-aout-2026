@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "test": "dotenv -e .env.test -- bash -c 'npx prisma migrate reset --force && vitest run'",
@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "engines": { "node": ">=20 <21" },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",
     "nodemon": "^3.1.14",
