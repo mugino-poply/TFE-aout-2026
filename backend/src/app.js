@@ -11,6 +11,12 @@ import annulationsRouter from "./routes/annulations.js";
 
 const app = express();
 
+// Un seul saut : nginx tourne sur la même machine et se connecte en local.
+// "loopback" plutôt que true ou 1 : seule une connexion venue de la machine
+// elle-même est de confiance, donc un X-Forwarded-For forgé par un client
+// ne peut pas se faire passer pour le dernier saut et échapper au limiteur.
+app.set("trust proxy", "loopback");
+
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
