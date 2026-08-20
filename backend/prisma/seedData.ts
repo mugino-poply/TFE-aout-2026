@@ -2,12 +2,65 @@ import prisma from "../src/lib/prisma.js";
 import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 12;
+const EST_PRODUCTION = process.env.NODE_ENV === "production";
+
+// Codes PIN de développement. Versionnés, donc publics : ils n'ouvrent qu'une base
+// jetable et locale. En production chaque code doit venir de l'environnement,
+// sinon le seed refuse de tourner (voir lirePin).
+const PINS_DEV = {
+  secretaire1: "8181",
+  cuisine1: "0307",
+  serveur1: "2120",
+  admin1: "2911",
+};
+
+// En production, l'absence de la variable est fatale : on ne crée jamais un compte
+// dont le code est lisible dans le dépôt. Hors production, repli sur la valeur de
+// développement pour que la suite de tests reste exécutable sans configuration.
+function lirePin(login: keyof typeof PINS_DEV, variable: string): string {
+  const valeur = process.env[variable];
+
+  if (!valeur) {
+    if (EST_PRODUCTION) {
+      console.error(`Variable d'environnement manquante : ${variable} (code du compte ${login})`);
+      process.exit(1);
+    }
+    return PINS_DEV[login];
+  }
+
+  if (!/^\d{4}$/.test(valeur)) {
+    console.error(`${variable} doit contenir exactement 4 chiffres`);
+    process.exit(1);
+  }
+
+  return valeur;
+}
 
 const utilisateurs = [
-  { login: "secretaire1", prenom: "Olivia", code: "8181", role: "secretaire" as const },
-  { login: "cuisine1", prenom: "Lionel", code: "0307", role: "cuisine" as const },
-  { login: "serveur1", prenom: "Diego", code: "2120", role: "serveur" as const },
-  { login: "admin1", prenom: "Hippolyte", code: "2911", role: "admin" as const },
+  {
+    login: "secretaire1",
+    prenom: "Olivia",
+    code: lirePin("secretaire1", "SEED_PIN_SECRETAIRE"),
+    role: "secretaire" as const,
+  },
+  {
+    login: "cuisine1",
+    prenom: "Lionel",
+    code: lirePin("cuisine1", "SEED_PIN_CUISINE"),
+    role: "cuisine" as const,
+  },
+  {
+    login: "serveur1",
+    prenom: "Diego",
+    code: lirePin("serveur1", "SEED_PIN_SERVEUR"),
+    role: "serveur" as const,
+  },
+  {
+    login: "admin1",
+    prenom: "Hippolyte",
+    code: lirePin("admin1", "SEED_PIN_ADMIN"),
+    role: "admin" as const,
+  },
 ];
 
 // Invariants du seed pour US-04.
