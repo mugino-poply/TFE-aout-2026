@@ -2,11 +2,36 @@ import prisma from "../src/lib/prisma.js";
 import bcrypt from "bcrypt";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 12;
-const EST_PRODUCTION = process.env.NODE_ENV === "production";
+
+const ENVIRONNEMENTS = ["development", "test", "production"] as const;
+type Environnement = (typeof ENVIRONNEMENTS)[number];
+
+// Le seed doit savoir explicitement où il tourne. Une valeur absente n'est pas
+// interprétée comme "développement" : elle arrête le processus. Sans cette
+// inversion, oublier NODE_ENV sur le serveur poserait silencieusement les codes
+// du dépôt en base, alors qu'ici l'oubli produit un arrêt net et un message.
+function lireEnvironnement(): Environnement {
+  const valeur = process.env.NODE_ENV;
+
+  if (!valeur) {
+    console.error("NODE_ENV non défini : le seed refuse de tourner sans connaître son contexte.");
+    console.error(`Valeurs acceptées : ${ENVIRONNEMENTS.join(", ")}`);
+    process.exit(1);
+  }
+
+  if (!ENVIRONNEMENTS.includes(valeur as Environnement)) {
+    console.error(`NODE_ENV inconnu : ${valeur}`);
+    console.error(`Valeurs acceptées : ${ENVIRONNEMENTS.join(", ")}`);
+    process.exit(1);
+  }
+
+  return valeur as Environnement;
+}
+
+export const ENVIRONNEMENT = lireEnvironnement();
 
 // Codes PIN de développement. Versionnés, donc publics : ils n'ouvrent qu'une base
-// jetable et locale. En production chaque code doit venir de l'environnement,
-// sinon le seed refuse de tourner (voir lirePin).
+// jetable et locale. En production chaque code vient de l'environnement.
 const PINS_DEV = {
   secretaire1: "8181",
   cuisine1: "0307",
@@ -16,12 +41,12 @@ const PINS_DEV = {
 
 // En production, l'absence de la variable est fatale : on ne crée jamais un compte
 // dont le code est lisible dans le dépôt. Hors production, repli sur la valeur de
-// développement pour que la suite de tests reste exécutable sans configuration.
+// développement pour que la suite de tests reste exécutable après un simple clone.
 function lirePin(login: keyof typeof PINS_DEV, variable: string): string {
   const valeur = process.env[variable];
 
   if (!valeur) {
-    if (EST_PRODUCTION) {
+    if (ENVIRONNEMENT === "production") {
       console.error(`Variable d'environnement manquante : ${variable} (code du compte ${login})`);
       process.exit(1);
     }

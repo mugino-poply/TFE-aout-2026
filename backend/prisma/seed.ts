@@ -1,12 +1,12 @@
 import prisma from "../src/lib/prisma.js";
-import { seedDatabase } from "./seedData.js";
+import { seedDatabase, ENVIRONNEMENT } from "./seedData.js";
 
 // seedDatabase() vide toutes les tables avant de recréer le jeu de démonstration.
-// C'est le comportement attendu en développement et en test, destructeur en production.
-// Cette garde vit dans le wrapper CLI et non dans seedData.ts : le setup de test
+// Comportement attendu en développement et en test, destructeur en production.
+// La garde vit dans le wrapper CLI et non dans seedData.ts : le setup de test
 // appelle seedDatabase() directement et ne doit jamais la traverser.
 async function verifierDestructionAutorisee() {
-  if (process.env.NODE_ENV !== "production") return;
+  if (ENVIRONNEMENT !== "production") return;
 
   const [residents, commandes] = await Promise.all([
     prisma.resident.count(),
@@ -33,7 +33,7 @@ async function verifierDestructionAutorisee() {
 // de la connexion. Toute la logique de données vit dans seedData.ts.
 verifierDestructionAutorisee()
   .then(() => seedDatabase())
-  .then(() => console.log("Seed terminé"))
+  .then(() => console.log(`Seed terminé (${ENVIRONNEMENT})`))
   .catch((e) => {
     console.error(e);
     process.exit(1);
